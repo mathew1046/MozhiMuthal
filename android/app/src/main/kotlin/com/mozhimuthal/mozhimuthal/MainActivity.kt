@@ -1,0 +1,5 @@
+package com.mozhimuthal.mozhimuthal
+
+import io.flutter.embedding.android.FlutterActivity
+
+class MainActivity : FlutterActivity()
