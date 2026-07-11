@@ -11,8 +11,8 @@
 **Platform:** Flutter (Android-first, Kotlin method channels for native audio HAL access)
 
 **Team:**
-- **Dathan** → Flutter UI/UX, consent flow, elicitation screens, result display, referral letter generation, state management
-- **Mathew** → Native audio pipeline, ML model integration (ONNX diarization + VAD), biomarker extraction engine, cloud sync
+- **Dathan** → Flutter UI/UX, consent flow, elicitation screens, result display, referral letter generation, state management, Next.js Web Dashboard
+- **Mathew** → Native audio pipeline, ML model integration (ONNX diarization + VAD), biomarker extraction engine, Supabase Architecture & Auth
 
 ---
 
@@ -44,7 +44,7 @@
 └────────────────────┬────────────────────────────────────────────┘
                      │ WiFi (async, when available)
 ┌────────────────────▼────────────────────────────────────────────┐
-│               CLOUD LAYER (Supabase + React Dashboard)           │
+│          CLOUD LAYER (Supabase + Next.js/Vercel Dashboard)       │
 │                                                                   │
 │  1D Feature Vector JSON only (no audio, no spectrograms)         │
 │  DEIC district-level analytics dashboard                          │
@@ -124,7 +124,7 @@ mozhimuthal/
 │       └── whatsapp_service.dart           # url_launcher deep link
 ├── supabase/
 │   └── schema.sql
-└── dashboard/                              # React DEIC dashboard (separate repo)
+└── dashboard/                              # Next.js App Router dashboard (separate repo)
     ├── src/
     └── package.json
 ```
@@ -427,10 +427,24 @@ CREATE TABLE sessions (
 
 ---
 
-## 9. Cloud Sync (Supabase)
+## 9. Cloud Sync & Auth (Supabase)
+
+**Authentication Strategy:**
+Anganwadi workers log in using a 4-digit PIN tied to their Anganwadi ID (pre-provisioned in Supabase Auth to avoid SMS costs).
+
+**Offline Sync Strategy:**
+A "Sync Unsaved Data" button on the HomeScreen handles batch uploading local SQLite records to Supabase when 4G is available. This is more reliable than background tasks on aggressive battery-saving OEM skins.
 
 ```sql
 -- supabase/schema.sql
+-- Workers table mapped to Auth profiles
+CREATE TABLE workers (
+  id UUID REFERENCES auth.users PRIMARY KEY,
+  anganwadi_id TEXT UNIQUE NOT NULL,
+  district_code TEXT NOT NULL,
+  name TEXT NOT NULL
+);
+
 CREATE TABLE screenings (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   anganwadi_id TEXT NOT NULL,
@@ -579,31 +593,31 @@ implementation 'com.microsoft.onnxruntime:onnxruntime-android:1.18.0'
 
 ---
 
-## 13. Two-Week Sprint Plan
+## 13. Detailed Two-Week Sprint Plan
 
-### Week 1 — Foundation + Core Pipeline
+### Week 1 — Foundation, Native ML Audio & App Core
 
-| Day | Dathan (Flutter) | Mathew (Native/ML) |
-|-----|------------------|-------------------|
-| 1 | Project setup, Riverpod architecture, routing, theme, SQLite schema | Android project setup, ONNX Runtime integration, Pyannote model download + INT8 quantization |
-| 2 | HomeScreen + ChildProfileEntry UI | `UnprocessedAudioRecorder.kt` — verify AGC bypass on test device, compare spectrograms |
-| 3 | ConsentScreen — audio playback (just_audio), consent log | `RollingBufferProcessor.kt` — 10s window, memory profiling on 2GB device |
-| 4 | ElicitationScreen — 3 protocol cards, pictograms, timer logic | `WebRTCVadBridge.kt` — .aar integration, frame-level VAD testing |
-| 5 | ElicitationScreen polish + recording state management | `PyannoteRunner.kt` — ONNX session setup, speaker segment output |
-| 6 | ProcessingScreen — animated UI, method channel integration | `FeatureExtractor.kt` — VTTL, CVR implementation + unit tests |
-| 7 | Buffer day / integration testing | PFV (YIN algorithm) + method channel wiring |
+| Day | Dathan (Flutter & Web) | Mathew (Native/ML & Backend) |
+|-----|-----------------------|------------------------------|
+| **1** | **Scaffolding:** Setup Flutter Riverpod architecture, theme, GoRouter. Create base screen files. | **ML Prep:** Download Pyannote model, quantize to INT8. Setup native Android project struct. |
+| **2** | **App Core:** Build SQLite DB helpers, Riverpod State, and UI for `HomeScreen` and `ChildProfileEntry`. | **Native Audio:** Implement `UnprocessedAudioRecorder.kt`. Test AGC bypass on low-end test device. |
+| **3** | **Web Scaffold:** Setup Next.js App Router for Dashboard, configure Tailwind, deploy to Vercel. | **Memory Mgt:** Build `RollingBufferProcessor.kt` (10s chunks). Profile memory usage on 2GB RAM device. |
+| **4** | **UX Building:** Build `ConsentScreen` (just_audio playback) and basic `ElicitationScreen` cards. | **VAD Integration:** Bridge WebRTC VAD (.aar) via JNI. Test frame-level silence dropping. |
+| **5** | **UX Logic:** Elicitation Screen timers, recording state, progression logic, and UI polish. | **Diarization Engine:** Connect Pyannote ONNX session in `PyannoteRunner.kt`. Test speaker segmentation. |
+| **6** | **Results UI:** Build `ProcessingScreen` animations and basic `ResultScreen` layout with mock data. | **Feature Extractor:** Implement YIN algorithm for F0, calculate VTTL and CVR ratios natively. |
+| **7** | **Integration Pt 1:** Wire the method channel between Flutter UI and Kotlin Native backend. | **Integration Pt 1:** Expose Native API. Write unit tests for pipeline outputs given raw PCM buffers. |
 
-### Week 2 — Results, Cloud, Polish, Demo
+### Week 2 — Cloud Sync, Dashboards, Polish & Demo
 
-| Day | Dathan (Flutter) | Mathew (Native/ML) |
-|-----|------------------|-------------------|
-| 8 | Scoring engine (Dart) + ResultScreen — risk card, biomarker chips | End-to-end pipeline test: real child audio → feature JSON |
-| 9 | ReferralScreen — PDF generation, DEIC JSON database | Supabase schema setup, sync repository, offline queue |
-| 10 | WhatsApp share integration + share flow | Dashboard (React + Supabase): district-level RED/YELLOW/GREEN counts |
-| 11 | Malayalam Noto font bundling, all string localization | Dashboard: time-trend chart, Anganwadi drill-down |
-| 12 | Full end-to-end flow test on physical Android device | Performance profiling: memory, CPU, battery |
-| 13 | UI polish, edge cases (no child vocalizations, very short sessions) | Fallback handling (UNPROCESSED unavailable), error reporting |
-| 14 | Demo video recording, slide deck, submission | Demo video support, deployment, final QA |
+| Day | Dathan (Flutter & Web) | Mathew (Native/ML & Backend) |
+|-----|-----------------------|------------------------------|
+| **8** | **Scoring Engine:** Port ML logic limits into Dart. Wire `ResultScreen` to real Method Channel outputs. | **End-to-End Pipeline:** Test full pipeline (audio -> VAD -> Diarize -> Feature JSON). Fix edge case crashes. |
+| **9** | **Web UI:** Build DEIC Dashboard UI in Next.js (Charts, Maps, Data Grids with shadcn/ui). | **Backend Setup:** Configure Supabase Postgres, RLS Policies, Auth (PIN login), and Sync API endpoints. |
+| **10** | **App Referrals:** Build `ReferralScreen`, implement PDF Generation (Malayalam fonts), WhatsApp URL Scheme. | **App Cloud:** Implement Flutter Supabase client. Build "Sync Unsaved Data" logic to push local SQLite to Cloud. |
+| **11** | **Web Data:** Connect Next.js Dashboard to Supabase. Implement live district-level RED/YELLOW counts. | **Hardware Testing:** Profile battery/CPU consumption. Implement `VOICE_RECOGNITION` fallback if `UNPROCESSED` fails. |
+| **12** | **UX Polish:** Fix font loading, text overflows, button sizes. Add edge case UI (e.g. mic permission denied). | **Method Channel Errors:** Define explicit error codes (`ERR_MIC_LOCKED`, `ERR_OOM`). Ensure graceful app failures. |
+| **13** | **E2E Testing:** Full field test mimicking Anganwadi worker outdoors. Test Auth login & offline capability. | **App Distribution:** Setup GitHub Actions to build APK automatically. Create download landing page for Judges. |
+| **14** | **Demo Prep:** Screen record perfect flows. Build pitch deck focusing on social impact and cost feasibility. | **Final QA:** Final check of Supabase DB connections. Support demo video recording and submit. |
 
 ---
 
