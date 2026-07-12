@@ -1,0 +1,72 @@
+{
+  "TVM": {
+    "name": "DEIC Thiruvananthapuram",
+    "address": "SAT Hospital Campus, Thiruvananthapuram, Kerala 695011",
+    "phone": "0471-2528386"
+  },
+  "KLM": {
+    "name": "DEIC Kollam",
+    "address": "District Hospital, Kollam, Kerala 691001",
+    "phone": "0474-2742388"
+  },
+  "PTA": {
+    "name": "DEIC Pathanamthitta",
+    "address": "General Hospital, Pathanamthitta, Kerala 689645",
+    "phone": "0468-2222328"
+  },
+  "ALP": {
+    "name": "DEIC Alappuzha",
+    "address": "General Hospital, Alappuzha, Kerala 688001",
+    "phone": "0477-2251436"
+  },
+  "KTM": {
+    "name": "DEIC Kottayam",
+    "address": "General Hospital, Kottayam, Kerala 686001",
+    "phone": "0481-2562201"
+  },
+  "IDK": {
+    "name": "DEIC Idukki",
+    "address": "District Hospital, Thodupuzha, Idukki, Kerala 685584",
+    "phone": "04862-224455"
+  },
+  "EKM": {
+    "name": "DEIC Ernakulam",
+    "address": "General Hospital, Ernakulam, Kerala 682011",
+    "phone": "0484-2361251"
+  },
+  "TSR": {
+    "name": "DEIC Thrissur",
+    "address": "General Hospital, Thrissur, Kerala 680001",
+    "phone": "0487-2420847"
+  },
+  "PKD": {
+    "name": "DEIC Palakkad",
+    "address": "District Hospital, Palakkad, Kerala 678001",
+    "phone": "0491-2534358"
+  },
+  "MLP": {
+    "name": "DEIC Malappuram",
+    "address": "District Hospital, Manjeri, Malappuram, Kerala 676121",
+    "phone": "0483-2766306"
+  },
+  "KKD": {
+    "name": "DEIC Kozhikode",
+    "address": "Govt. Medical College, Kozhikode, Kerala 673008",
+    "phone": "0495-2350216"
+  },
+  "WYD": {
+    "name": "DEIC Wayanad",
+    "address": "District Hospital, Kalpetta, Wayanad, Kerala 673121",
+    "phone": "04936-202340"
+  },
+  "KNR": {
+    "name": "DEIC Kannur",
+    "address": "District Hospital, Kannur, Kerala 670002",
+    "phone": "0497-2700136"
+  },
+  "KSD": {
+    "name": "DEIC Kasaragod",
+    "address": "General Hospital, Kasaragod, Kerala 671121",
+    "phone": "04994-220253"
+  }
+}
