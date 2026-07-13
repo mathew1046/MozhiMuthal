@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:just_audio/just_audio.dart';
 
 /// Plays Malayalam TTS audio prompts from assets.
@@ -9,8 +10,8 @@ class TtsService {
     try {
       await _player.setAsset(assetPath);
       await _player.play();
-    } catch (_) {
-      // Audio file may not exist yet — fail silently during development
+    } catch (e) {
+      debugPrint('TtsService: Failed to play $assetPath: $e');
     }
   }
 

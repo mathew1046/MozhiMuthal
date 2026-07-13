@@ -63,9 +63,9 @@ class FeatureExtractor {
         
         // Step 1: Difference function
         for (tau in 0 until tauMax) {
-            for (i in 0 until buffer.size - tauMax) {
-                val delta = buffer[i] - buffer[i + tau]
-                yinBuffer[tau] += (delta * delta).toDouble()
+            for (i in 0 until buffer.size - tau) {
+                val delta = buffer[i].toDouble() - buffer[i + tau].toDouble()
+                yinBuffer[tau] += delta * delta
             }
         }
 

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/session_model.dart';
 import '../local/database_helper.dart';
@@ -28,7 +29,8 @@ class SyncRepository {
         await _supabase.from('screenings').insert(session.toSupabaseJson());
         await DatabaseHelper.markSynced(session.id);
         synced++;
-      } catch (_) {
+      } catch (e) {
+        debugPrint('SyncRepository: Failed to sync session ${session.id}: $e');
       }
     }
     return synced;

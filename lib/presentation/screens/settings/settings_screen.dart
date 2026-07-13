@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:go_router/go_router.dart';
+import '../../../services/audio_pipeline_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -26,6 +27,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _nameController.text = prefs.getString('worker_name') ?? '';
     _anganwadiController.text = prefs.getString('default_anganwadi') ?? '';
     _demoMode = prefs.getBool('demo_mode') ?? true;
+    AudioPipelineService.useMock = _demoMode;
+    if (!mounted) return;
     setState(() => _loaded = true);
   }
 
@@ -35,6 +38,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await prefs.setString(
         'default_anganwadi', _anganwadiController.text.trim());
     await prefs.setBool('demo_mode', _demoMode);
+    AudioPipelineService.useMock = _demoMode;
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(

@@ -82,14 +82,19 @@ class ReferralScreen extends ConsumerWidget {
 
             // Share via WhatsApp
             FilledButton.icon(
-              onPressed: () {
-                WhatsAppService.share(
+              onPressed: () async {
+                final sent = await WhatsAppService.share(
                   text:
                       'MozhiMuthal Screening Referral\n'
                       'Anganwadi: ${profile?.anganwadiId}\n'
                       'Age: ${profile?.childAgeMonths} months\n'
                       'Result: RED — DEIC visit recommended',
                 );
+                if (!sent && context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Could not open WhatsApp. Please check if it is installed.')),
+                  );
+                }
               },
               icon: const Icon(Icons.share),
               label: const Text('Share via WhatsApp'),
