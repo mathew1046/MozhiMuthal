@@ -4,7 +4,9 @@ import kotlin.math.sqrt
 
 class FeatureExtractor {
     fun extract(chunk: ShortArray, segments: List<SpeakerSegment>, childAgeMonths: Int): ChunkFeatures {
-        // VTTL: Vocal Turn Taking Latency (Adult -> Child gap)
+        // Pitch labels are deliberately conservative; uncertain tracks remain
+        // UNKNOWN and are excluded from child/adult-derived features.
+        val labelled = segments.map { it.copy(speaker = label(chunk, it)) }
         var vttlSum = 0L
         var transitions = 0
         var lastAdultEnd = -1L
@@ -14,7 +16,7 @@ class FeatureExtractor {
         // Arrays to hold child F0 values
         val childF0s = mutableListOf<Double>()
 
-        for (segment in segments) {
+        for (segment in labelled) {
             if (segment.speaker == "ADULT") {
                 lastAdultEnd = segment.end_ms
             } else if (segment.speaker == "CHILD") {
@@ -49,7 +51,20 @@ class FeatureExtractor {
             pfv_std = sqrt(sumVariance / childF0s.size)
         }
 
-        return ChunkFeatures(vttl_ms, pfv_std, cvr_ratio)
+        return ChunkFeatures(vttl_ms, pfv_std, cvr_ratio, 0, childDurationMs,
+            chunk.size / 16L, transitions)
+    }
+
+    private fun label(chunk: ShortArray, segment: SpeakerSegment): String {
+        val start = (segment.start_ms * 16).toInt().coerceAtLeast(0)
+        val end = (segment.end_ms * 16).toInt().coerceAtMost(chunk.size)
+        if (end - start < 1600) return "UNKNOWN"
+        val f0 = computeYinPitch(chunk.copyOfRange(start, end), 16000)
+        return when {
+            f0 in 260.0..600.0 -> "CHILD"
+            f0 in 85.0..220.0 -> "ADULT"
+            else -> "UNKNOWN"
+        }
     }
 
     // Simplified YIN algorithm implementation

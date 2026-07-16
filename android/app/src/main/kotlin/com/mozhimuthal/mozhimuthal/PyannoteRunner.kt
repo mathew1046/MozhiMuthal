@@ -13,7 +13,8 @@ class PyannoteRunner {
     private var session: OrtSession? = null
     private var isInitialized = false
 
-    fun initialize(modelPath: String) {
+    @Synchronized fun initialize(modelPath: String) {
+        if (isInitialized) return
         try {
             env = OrtEnvironment.getEnvironment()
             val options = OrtSession.SessionOptions().apply {
@@ -30,9 +31,7 @@ class PyannoteRunner {
 
     fun diarize(pcm: ShortArray): List<SpeakerSegment> {
         if (!isInitialized || env == null || session == null) {
-            // Mock fallback if ONNX model is missing
-            Log.w("PyannoteRunner", "Model not initialized. Returning mock segments.")
-            return listOf(SpeakerSegment(0, 5000, "ADULT"), SpeakerSegment(5000, 10000, "CHILD"))
+            throw IllegalStateException("Pyannote model is not initialized")
         }
 
         try {
@@ -42,19 +41,41 @@ class PyannoteRunner {
             val tensor = OnnxTensor.createTensor(env, FloatBuffer.wrap(floatArray), shape)
             
             val result = session?.run(mapOf("input" to tensor))
-            val output = result?.get(0)?.value as? Array<Array<FloatArray>> // [batch, frames, speakers]
-            
+            val output = result?.get(0)?.value
             result?.close()
             tensor.close()
-
-            // In a real implementation, we would threshold the output probabilities
-            // to extract segments and use YIN to label CHILD vs ADULT.
-            // For now, return mock parsing:
-            return listOf(SpeakerSegment(0, 5000, "ADULT"), SpeakerSegment(5000, 10000, "CHILD"))
+            return decodePowerset(output, pcm.size)
         } catch (e: Exception) {
             Log.e("PyannoteRunner", "Inference failed", e)
             return emptyList()
         }
+    }
+
+    /** Decodes [batch, frames, powerset classes] using the model metadata. */
+    private fun decodePowerset(value: Any?, samples: Int): List<SpeakerSegment> {
+        @Suppress("UNCHECKED_CAST")
+        val batch = value as? Array<*> ?: throw IllegalStateException("Unexpected ONNX output")
+        @Suppress("UNCHECKED_CAST")
+        val frames = batch.firstOrNull() as? Array<*> ?: throw IllegalStateException("Unexpected ONNX frame output")
+        val active = mutableListOf<Pair<Long, Long>>()
+        val frameMs = samples.toDouble() / 16_000.0 / frames.size * 1000.0
+        for (i in frames.indices) {
+            val scores = frames[i] as? FloatArray ?: continue
+            val best = scores.indices.maxByOrNull { scores[it] } ?: continue
+            if (scores[best] >= 0.5f) active += (i * frameMs).toLong() to ((i + 1) * frameMs).toLong()
+        }
+        if (active.isEmpty()) return emptyList()
+        val turns = mutableListOf<SpeakerSegment>()
+        var start = active.first().first
+        var end = active.first().second
+        for ((nextStart, nextEnd) in active.drop(1)) {
+            if (nextStart <= end + 100) end = nextEnd else {
+                turns += SpeakerSegment(start, end, "UNKNOWN")
+                start = nextStart; end = nextEnd
+            }
+        }
+        turns += SpeakerSegment(start, end, "UNKNOWN")
+        return turns
     }
 
     fun close() {

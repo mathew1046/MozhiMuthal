@@ -1,17 +1,18 @@
 package com.mozhimuthal.mozhimuthal
 
+import android.content.Context
 import android.media.AudioFormat
 import android.media.AudioRecord
 import android.media.MediaRecorder
 import android.util.Log
 
 
-class UnprocessedAudioRecorder {
+class UnprocessedAudioRecorder(private val context: Context) {
     private var audioRecord: AudioRecord? = null
     val sampleRate = 16000
     val channelConfig = AudioFormat.CHANNEL_IN_MONO
     val audioFormat = AudioFormat.ENCODING_PCM_16BIT
-    val minBuffer = AudioRecord.getMinBufferSize(sampleRate, channelConfig, audioFormat)
+    private val minBuffer = AudioRecord.getMinBufferSize(sampleRate, channelConfig, audioFormat)
     var audioSourceUsed: String = "UNPROCESSED"
 
     fun startRecording(): Boolean {
