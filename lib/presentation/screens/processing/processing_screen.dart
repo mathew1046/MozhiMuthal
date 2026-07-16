@@ -46,7 +46,6 @@ class _ProcessingScreenState extends ConsumerState<ProcessingScreen>
       setState(() => _phase = i);
     }
 
-    // Run mock pipeline
     final rawResult = await AudioPipelineService.runPipeline(
       childAgeMonths: ageMonths,
     );

@@ -13,7 +13,7 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   final _nameController = TextEditingController();
   final _anganwadiController = TextEditingController();
-  bool _demoMode = true;
+  bool _demoMode = false;
   bool _loaded = false;
 
   @override
@@ -26,8 +26,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final prefs = await SharedPreferences.getInstance();
     _nameController.text = prefs.getString('worker_name') ?? '';
     _anganwadiController.text = prefs.getString('default_anganwadi') ?? '';
-    _demoMode = prefs.getBool('demo_mode') ?? true;
-    AudioPipelineService.useMock = _demoMode;
+    _demoMode = prefs.getBool('demo_mode') ?? false;
+    AudioPipelineService.mode = _demoMode ? AudioPipelineMode.demo : AudioPipelineMode.live;
     if (!mounted) return;
     setState(() => _loaded = true);
   }
@@ -38,7 +38,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await prefs.setString(
         'default_anganwadi', _anganwadiController.text.trim());
     await prefs.setBool('demo_mode', _demoMode);
-    AudioPipelineService.useMock = _demoMode;
+    AudioPipelineService.mode = _demoMode ? AudioPipelineMode.demo : AudioPipelineMode.live;
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(

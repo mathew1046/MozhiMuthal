@@ -63,6 +63,12 @@ class ResultScreen extends ConsumerWidget {
                 ],
               ),
             ),
+            const SizedBox(height: 8),
+            const Text(
+              'Screening signal only — not a diagnosis. Discuss concerns with a clinician/DEIC.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 12),
+            ),
             const SizedBox(height: 28),
 
             // Biomarker chips

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants.dart';
+import '../../../services/audio_pipeline_service.dart';
 import 'protocol_card.dart';
 
 class ElicitationScreen extends StatefulWidget {
@@ -14,6 +16,7 @@ class _ElicitationScreenState extends State<ElicitationScreen> {
   int _currentProtocol = 0; // 0, 1, 2
   int _elapsed = 0;
   bool _recording = false;
+  String? _error;
 
   static const _protocols = [
     ProtocolInfo(
@@ -42,12 +45,18 @@ class _ElicitationScreenState extends State<ElicitationScreen> {
     _startRecording();
   }
 
-  void _startRecording() {
-    setState(() {
-      _recording = true;
-      _elapsed = 0;
-    });
-    _tick();
+  Future<void> _startRecording() async {
+    try {
+      await AudioPipelineService.requestPermission();
+      await AudioPipelineService.startSession();
+      if (!mounted) return;
+      setState(() { _recording = true; _elapsed = 0; _error = null; });
+      _tick();
+    } on AudioPipelineException catch (e) {
+      if (mounted) setState(() => _error = e.message);
+    } on PlatformException catch (e) {
+      if (mounted) setState(() => _error = e.message ?? 'Microphone unavailable');
+    }
   }
 
   void _tick() {
@@ -64,13 +73,10 @@ class _ElicitationScreenState extends State<ElicitationScreen> {
 
   void _nextProtocol() {
     if (_currentProtocol < 2) {
-      setState(() {
-        _currentProtocol++;
-        _elapsed = 0;
-        _recording = true;
-      });
+      setState(() { _currentProtocol++; _elapsed = 0; });
       _tick();
     } else {
+      AudioPipelineService.stopSession();
       context.push('/processing');
     }
   }
@@ -119,6 +125,11 @@ class _ElicitationScreenState extends State<ElicitationScreen> {
             ),
 
             const SizedBox(height: 24),
+            if (_error != null)
+              Card(child: Padding(padding: const EdgeInsets.all(12), child: Text(
+                'Recording unavailable: $_error\nCheck microphone permission and try again.',
+                style: TextStyle(color: theme.colorScheme.error),
+              ))),
 
             // Next button
             SizedBox(
