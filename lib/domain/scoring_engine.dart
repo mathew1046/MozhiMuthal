@@ -8,6 +8,11 @@ class SessionFeatures {
   final double cvrRatio;
   final int childAgeMonths;
   final String audioSourceUsed;
+  final String analysisStatus;
+  final List<String> qualityReasons;
+  final int transitionCount;
+  final double voicedSeconds;
+  final double childVoicedSeconds;
 
   const SessionFeatures({
     required this.vttlMs,
@@ -15,6 +20,11 @@ class SessionFeatures {
     required this.cvrRatio,
     required this.childAgeMonths,
     this.audioSourceUsed = 'UNPROCESSED',
+    this.analysisStatus = 'COMPLETE',
+    this.qualityReasons = const [],
+    this.transitionCount = 0,
+    this.voicedSeconds = 0,
+    this.childVoicedSeconds = 0,
   });
 
   factory SessionFeatures.fromJson(Map<String, dynamic> json) =>
@@ -25,6 +35,13 @@ class SessionFeatures {
         childAgeMonths: json['child_age_months'] as int,
         audioSourceUsed:
             json['audio_source_used'] as String? ?? 'UNPROCESSED',
+        analysisStatus: json['analysis_status'] as String? ?? 'COMPLETE',
+        qualityReasons: (json['quality_reasons'] as List? ?? const [])
+            .map((e) => e.toString()).toList(),
+        transitionCount: (json['transition_count'] as num?)?.toInt() ?? 0,
+        voicedSeconds: (json['voiced_seconds'] as num?)?.toDouble() ?? 0,
+        childVoicedSeconds:
+            (json['child_voiced_seconds'] as num?)?.toDouble() ?? 0,
       );
 }
 
@@ -32,6 +49,12 @@ class ScoringEngine {
   ScoringEngine._();
 
   static BiomarkerResult score(SessionFeatures f) {
+    if (f.analysisStatus != 'COMPLETE' || f.qualityReasons.isNotEmpty ||
+        f.audioSourceUsed == 'DEMO') {
+      return BiomarkerResult.incomplete(f.qualityReasons.isEmpty
+          ? const ['Audio quality did not meet the minimum requirements']
+          : f.qualityReasons);
+    }
     final bool vttlFlagged = f.vttlMs > AppConstants.vttlThresholdMs;
 
     bool pfvFlagged = false;
