@@ -8,6 +8,8 @@ class BiomarkerResult {
   final bool pfvFlagged;
   final bool cvrFlagged;
   final String malayalamExplanation;
+  final bool incomplete;
+  final List<String> qualityReasons;
 
   const BiomarkerResult({
     required this.riskLevel,
@@ -15,7 +17,17 @@ class BiomarkerResult {
     required this.pfvFlagged,
     required this.cvrFlagged,
     required this.malayalamExplanation,
+    this.incomplete = false,
+    this.qualityReasons = const [],
   });
+
+  const BiomarkerResult.incomplete(this.qualityReasons)
+      : riskLevel = RiskLevel.yellow,
+        vttlFlagged = false,
+        pfvFlagged = false,
+        cvrFlagged = false,
+        incomplete = true,
+        malayalamExplanation = 'Incomplete—repeat recording. ഇത് രോഗനിർണ്ണയം അല്ല.';
 
   int get flagCount =>
       [vttlFlagged, pfvFlagged, cvrFlagged].where((f) => f).length;
@@ -32,6 +44,7 @@ class BiomarkerResult {
   }
 
   String get riskLabel {
+    if (incomplete) return 'INCOMPLETE';
     switch (riskLevel) {
       case RiskLevel.red:
         return 'RED';
@@ -48,5 +61,7 @@ class BiomarkerResult {
         'pfv_flagged': pfvFlagged,
         'cvr_flagged': cvrFlagged,
         'malayalam_explanation': malayalamExplanation,
+        'incomplete': incomplete,
+        'quality_reasons': qualityReasons,
       };
 }

@@ -17,6 +17,14 @@ class SessionModel {
   final String audioSourceUsed;
   final bool syncedToCloud;
   final String districtCode;
+  final String? childUuid;
+  final String analysisStatus;
+  final List<String> qualityReasons;
+  final int transitionCount;
+  final double voicedSeconds;
+  final double childVoicedSeconds;
+  final bool demoSession;
+  final int retryCount;
 
   const SessionModel({
     required this.id,
@@ -35,6 +43,14 @@ class SessionModel {
     required this.audioSourceUsed,
     this.syncedToCloud = false,
     required this.districtCode,
+    this.childUuid,
+    this.analysisStatus = 'COMPLETE',
+    this.qualityReasons = const [],
+    this.transitionCount = 0,
+    this.voicedSeconds = 0,
+    this.childVoicedSeconds = 0,
+    this.demoSession = false,
+    this.retryCount = 0,
   });
 
   SessionModel copyWith({
@@ -92,6 +108,14 @@ class SessionModel {
         'audio_source': audioSourceUsed,
         'synced': syncedToCloud ? 1 : 0,
         'district_code': districtCode,
+        'child_uuid': childUuid,
+        'analysis_status': analysisStatus,
+        'quality_reasons': qualityReasons.join('|'),
+        'transition_count': transitionCount,
+        'voiced_seconds': voicedSeconds,
+        'child_voiced_seconds': childVoicedSeconds,
+        'demo_session': demoSession ? 1 : 0,
+        'retry_count': retryCount,
       };
 
   factory SessionModel.fromMap(Map<String, dynamic> map) => SessionModel(
@@ -114,6 +138,14 @@ class SessionModel {
         audioSourceUsed: map['audio_source'] as String? ?? 'UNPROCESSED',
         syncedToCloud: map['synced'] == 1,
         districtCode: map['district_code'] as String? ?? '',
+        childUuid: map['child_uuid'] as String?,
+        analysisStatus: map['analysis_status'] as String? ?? 'COMPLETE',
+        qualityReasons: (map['quality_reasons'] as String? ?? '').split('|').where((e) => e.isNotEmpty).toList(),
+        transitionCount: (map['transition_count'] as num?)?.toInt() ?? 0,
+        voicedSeconds: (map['voiced_seconds'] as num?)?.toDouble() ?? 0,
+        childVoicedSeconds: (map['child_voiced_seconds'] as num?)?.toDouble() ?? 0,
+        demoSession: map['demo_session'] == 1,
+        retryCount: (map['retry_count'] as num?)?.toInt() ?? 0,
       );
 
   Map<String, dynamic> toSupabaseJson() => {
@@ -130,5 +162,11 @@ class SessionModel {
         'cvr_flagged': cvrFlagged,
         'audio_source': audioSourceUsed,
         'session_date': sessionDate.toIso8601String(),
+        'analysis_status': analysisStatus,
+        'quality_reasons': qualityReasons,
+        'transition_count': transitionCount,
+        'voiced_seconds': voicedSeconds,
+        'child_voiced_seconds': childVoicedSeconds,
+        'demo_session': demoSession,
       };
 }
