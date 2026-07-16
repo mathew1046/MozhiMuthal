@@ -5,7 +5,7 @@ import '../models/session_model.dart';
 class DatabaseHelper {
   static Database? _database;
   static const _dbName = 'mozhimuthal.db';
-  static const _dbVersion = 1;
+  static const _dbVersion = 2;
   static const _tableSessions = 'sessions';
 
   static Future<Database> get database async {
@@ -21,6 +21,20 @@ class DatabaseHelper {
       path,
       version: _dbVersion,
       onCreate: _onCreate,
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          for (final sql in const [
+            'ALTER TABLE sessions ADD COLUMN child_uuid TEXT',
+            "ALTER TABLE sessions ADD COLUMN analysis_status TEXT NOT NULL DEFAULT 'COMPLETE'",
+            "ALTER TABLE sessions ADD COLUMN quality_reasons TEXT NOT NULL DEFAULT ''",
+            'ALTER TABLE sessions ADD COLUMN transition_count INTEGER NOT NULL DEFAULT 0',
+            'ALTER TABLE sessions ADD COLUMN voiced_seconds REAL NOT NULL DEFAULT 0',
+            'ALTER TABLE sessions ADD COLUMN child_voiced_seconds REAL NOT NULL DEFAULT 0',
+            'ALTER TABLE sessions ADD COLUMN demo_session INTEGER NOT NULL DEFAULT 0',
+            'ALTER TABLE sessions ADD COLUMN retry_count INTEGER NOT NULL DEFAULT 0',
+          ]) { await db.execute(sql); }
+        }
+      },
     );
   }
 
@@ -42,7 +56,15 @@ class DatabaseHelper {
         cvr_flagged INTEGER,
         audio_source TEXT,
         synced INTEGER DEFAULT 0,
-        district_code TEXT
+        district_code TEXT,
+        child_uuid TEXT,
+        analysis_status TEXT NOT NULL DEFAULT 'COMPLETE',
+        quality_reasons TEXT NOT NULL DEFAULT '',
+        transition_count INTEGER NOT NULL DEFAULT 0,
+        voiced_seconds REAL NOT NULL DEFAULT 0,
+        child_voiced_seconds REAL NOT NULL DEFAULT 0,
+        demo_session INTEGER NOT NULL DEFAULT 0,
+        retry_count INTEGER NOT NULL DEFAULT 0
       )
     ''');
   }

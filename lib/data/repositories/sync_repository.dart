@@ -14,7 +14,11 @@ class SyncRepository {
     final List<Map<String, dynamic>> payload = sessions.map((s) => s.toSupabaseJson()).toList();
 
     try {
-      await _supabase.from('screenings').insert(payload);
+      for (final item in payload) {
+        if (item['demo_session'] == true) continue;
+        await _supabase.rpc('sync_screening_bundle', params: {'bundle': item});
+        await DatabaseHelper.markSynced(item['id'] as String);
+      }
     } catch (e) {
       throw Exception('Failed to sync sessions: $e');
     }
@@ -26,7 +30,8 @@ class SyncRepository {
 
     for (final session in unsynced) {
       try {
-        await _supabase.from('screenings').insert(session.toSupabaseJson());
+        if (session.demoSession) continue;
+        await _supabase.rpc('sync_screening_bundle', params: {'bundle': session.toSupabaseJson()});
         await DatabaseHelper.markSynced(session.id);
         synced++;
       } catch (e) {
