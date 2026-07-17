@@ -3,6 +3,7 @@ import '../../data/models/child_profile.dart';
 import '../../data/models/biomarker_result.dart';
 import '../../data/models/session_model.dart';
 import '../../data/repositories/session_repository.dart';
+import '../../domain/my_child_engine.dart';
 import 'package:uuid/uuid.dart';
 
 /// Current screening session state.
@@ -14,6 +15,10 @@ class SessionState {
   final double cvrRatio;
   final String audioSource;
   final bool isComplete;
+  final List<double> waveform;
+  final List<Map<String, dynamic>> decisionTrace;
+  final Map<String, bool> questionnaireAnswers;
+  final MyChildState? questionnaireState;
 
   const SessionState({
     this.childProfile,
@@ -23,6 +28,10 @@ class SessionState {
     this.cvrRatio = 0,
     this.audioSource = 'MOCK',
     this.isComplete = false,
+    this.waveform = const [],
+    this.decisionTrace = const [],
+    this.questionnaireAnswers = const {},
+    this.questionnaireState,
   });
 
   SessionState copyWith({
@@ -33,6 +42,10 @@ class SessionState {
     double? cvrRatio,
     String? audioSource,
     bool? isComplete,
+    List<double>? waveform,
+    List<Map<String, dynamic>>? decisionTrace,
+    Map<String, bool>? questionnaireAnswers,
+    MyChildState? questionnaireState,
   }) {
     return SessionState(
       childProfile: childProfile ?? this.childProfile,
@@ -42,6 +55,10 @@ class SessionState {
       cvrRatio: cvrRatio ?? this.cvrRatio,
       audioSource: audioSource ?? this.audioSource,
       isComplete: isComplete ?? this.isComplete,
+      waveform: waveform ?? this.waveform,
+      decisionTrace: decisionTrace ?? this.decisionTrace,
+      questionnaireAnswers: questionnaireAnswers ?? this.questionnaireAnswers,
+      questionnaireState: questionnaireState ?? this.questionnaireState,
     );
   }
 }
@@ -53,12 +70,24 @@ class SessionNotifier extends StateNotifier<SessionState> {
     state = state.copyWith(childProfile: profile);
   }
 
+  void setQuestionnaire(
+    Map<String, bool> answers,
+    MyChildState questionnaireState,
+  ) {
+    state = state.copyWith(
+      questionnaireAnswers: answers,
+      questionnaireState: questionnaireState,
+    );
+  }
+
   void setResult({
     required BiomarkerResult result,
     required double vttlMs,
     required double pfvStd,
     required double cvrRatio,
     required String audioSource,
+    List<double> waveform = const [],
+    List<Map<String, dynamic>> decisionTrace = const [],
   }) {
     state = state.copyWith(
       result: result,
@@ -66,6 +95,8 @@ class SessionNotifier extends StateNotifier<SessionState> {
       pfvStd: pfvStd,
       cvrRatio: cvrRatio,
       audioSource: audioSource,
+      waveform: waveform,
+      decisionTrace: decisionTrace,
     );
   }
 
@@ -91,6 +122,8 @@ class SessionNotifier extends StateNotifier<SessionState> {
       cvrFlagged: result.cvrFlagged,
       audioSourceUsed: state.audioSource,
       districtCode: profile.districtCode,
+      questionnaireState: state.questionnaireState?.name,
+      questionnaireAnswers: state.questionnaireAnswers,
     );
 
     await SessionRepository().saveSession(session);
@@ -102,8 +135,9 @@ class SessionNotifier extends StateNotifier<SessionState> {
   }
 }
 
-final sessionProvider =
-    StateNotifierProvider<SessionNotifier, SessionState>((ref) {
+final sessionProvider = StateNotifierProvider<SessionNotifier, SessionState>((
+  ref,
+) {
   return SessionNotifier();
 });
 

@@ -9,8 +9,7 @@ class ChildProfileScreen extends ConsumerStatefulWidget {
   const ChildProfileScreen({super.key});
 
   @override
-  ConsumerState<ChildProfileScreen> createState() =>
-      _ChildProfileScreenState();
+  ConsumerState<ChildProfileScreen> createState() => _ChildProfileScreenState();
 }
 
 class _ChildProfileScreenState extends ConsumerState<ChildProfileScreen> {
@@ -48,15 +47,16 @@ class _ChildProfileScreenState extends ConsumerState<ChildProfileScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     final profile = ChildProfile(
-      childName:
-          _nameController.text.trim().isEmpty ? null : _nameController.text.trim(),
+      childName: _nameController.text.trim().isEmpty
+          ? null
+          : _nameController.text.trim(),
       childAgeMonths: _ageMonths,
       anganwadiId: _anganwadiController.text.trim(),
       districtCode: _districtCode,
     );
 
     ref.read(sessionProvider.notifier).setChildProfile(profile);
-    context.push('/consent');
+    context.push('/questionnaire');
   }
 
   @override
@@ -98,7 +98,9 @@ class _ChildProfileScreenState extends ConsumerState<ChildProfileScreen> {
                       child: Text(
                         '$_ageMonths',
                         style: const TextStyle(
-                            fontSize: 32, fontWeight: FontWeight.bold),
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ),
@@ -142,10 +144,10 @@ class _ChildProfileScreenState extends ConsumerState<ChildProfileScreen> {
                   border: OutlineInputBorder(),
                 ),
                 items: _districts.entries
-                    .map((e) => DropdownMenuItem(
-                          value: e.key,
-                          child: Text(e.value),
-                        ))
+                    .map(
+                      (e) =>
+                          DropdownMenuItem(value: e.key, child: Text(e.value)),
+                    )
                     .toList(),
                 onChanged: (v) {
                   if (v != null) setState(() => _districtCode = v);

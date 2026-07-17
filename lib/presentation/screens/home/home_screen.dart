@@ -34,6 +34,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         title: const Text('MozhiMuthal'),
         actions: [
           IconButton(
+            icon: const Icon(Icons.history),
+            tooltip: 'Past results',
+            onPressed: () => context.push('/history'),
+          ),
+          IconButton(
             icon: const Icon(Icons.settings_outlined),
             onPressed: () => context.push('/settings'),
           ),
@@ -49,13 +54,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               color: theme.colorScheme.primary.withOpacity(0.1),
               child: Row(
                 children: [
-                  Icon(Icons.cloud_upload_outlined,
-                      size: 18, color: theme.colorScheme.primary),
+                  Icon(
+                    Icons.cloud_upload_outlined,
+                    size: 18,
+                    color: theme.colorScheme.primary,
+                  ),
                   const SizedBox(width: 8),
                   Text(
                     '${syncState.pendingCount} unsynced',
                     style: TextStyle(
-                        fontSize: 13, color: theme.colorScheme.onSurface),
+                      fontSize: 13,
+                      color: theme.colorScheme.onSurface,
+                    ),
                   ),
                   const Spacer(),
                   SizedBox(
@@ -68,8 +78,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           ? const SizedBox(
                               width: 16,
                               height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2))
-                          : const Text('Sync Now', style: TextStyle(fontSize: 13)),
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Text(
+                              'Sync Now',
+                              style: TextStyle(fontSize: 13),
+                            ),
                     ),
                   ),
                 ],
@@ -87,16 +101,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.graphic_eq,
-                            size: 64,
-                            color: theme.colorScheme.primary.withOpacity(0.3)),
+                        Icon(
+                          Icons.graphic_eq,
+                          size: 64,
+                          color: theme.colorScheme.primary.withOpacity(0.3),
+                        ),
                         const SizedBox(height: 16),
                         Text(
                           'No screenings yet',
                           style: TextStyle(
                             fontSize: 16,
-                            color:
-                                theme.colorScheme.onSurface.withOpacity(0.5),
+                            color: theme.colorScheme.onSurface.withOpacity(0.5),
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -104,8 +119,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           'Tap + to start a new screening',
                           style: TextStyle(
                             fontSize: 13,
-                            color:
-                                theme.colorScheme.onSurface.withOpacity(0.4),
+                            color: theme.colorScheme.onSurface.withOpacity(0.4),
                           ),
                         ),
                       ],
@@ -147,7 +161,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                 Text(
                                   s.childName ?? 'Child (${s.childAgeMonths}m)',
                                   style: const TextStyle(
-                                      fontWeight: FontWeight.w500),
+                                    fontWeight: FontWeight.w500,
+                                  ),
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
@@ -163,7 +178,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           ),
                           Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 4),
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
                               color: _riskColor(s.riskLevel).withOpacity(0.12),
                               borderRadius: BorderRadius.circular(6),
@@ -179,10 +196,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           ),
                           if (!s.syncedToCloud) ...[
                             const SizedBox(width: 8),
-                            Icon(Icons.cloud_off,
-                                size: 14,
-                                color: theme.colorScheme.onSurface
-                                    .withOpacity(0.3)),
+                            Icon(
+                              Icons.cloud_off,
+                              size: 14,
+                              color: theme.colorScheme.onSurface.withOpacity(
+                                0.3,
+                              ),
+                            ),
                           ],
                         ],
                       ),

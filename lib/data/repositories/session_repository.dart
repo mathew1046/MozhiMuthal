@@ -10,6 +10,9 @@ class SessionRepository {
     return DatabaseHelper.getRecentSessions(limit: limit);
   }
 
+  Future<List<SessionModel>> getAllSessions() =>
+      DatabaseHelper.getAllSessions();
+
   Future<List<SessionModel>> getUnsyncedSessions() async {
     return DatabaseHelper.getUnsyncedSessions();
   }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../../services/tts_service.dart';
 
 class ConsentScreen extends StatefulWidget {
   const ConsentScreen({super.key});
@@ -11,18 +12,29 @@ class ConsentScreen extends StatefulWidget {
 class _ConsentScreenState extends State<ConsentScreen> {
   bool _audioPlayed = false;
   bool _isPlaying = false;
+  String? _error;
+  final _tts = TtsService();
 
-  void _playAudio() {
+  Future<void> _playAudio() async {
     setState(() => _isPlaying = true);
-    // Simulate audio playback (TTS file will be added later)
-    Future.delayed(const Duration(seconds: 3), () {
-      if (mounted) {
-        setState(() {
-          _isPlaying = false;
-          _audioPlayed = true;
-        });
-      }
-    });
+    try {
+      await _tts.playConsent();
+      if (mounted) setState(() => _audioPlayed = true);
+    } catch (_) {
+      if (mounted)
+        setState(
+          () => _error =
+              'Consent audio is unavailable. Install a Malayalam text-to-speech voice and try again.',
+        );
+    } finally {
+      if (mounted) setState(() => _isPlaying = false);
+    }
+  }
+
+  @override
+  void dispose() {
+    _tts.dispose();
+    super.dispose();
   }
 
   @override
@@ -56,8 +68,8 @@ class _ConsentScreenState extends State<ConsentScreen> {
                     _isPlaying
                         ? 'Playing consent audio...'
                         : _audioPlayed
-                            ? 'Audio complete'
-                            : 'Play consent audio',
+                        ? 'Audio complete'
+                        : 'Play consent audio',
                     style: TextStyle(
                       fontSize: 16,
                       color: theme.colorScheme.onSurface,
@@ -76,6 +88,13 @@ class _ConsentScreenState extends State<ConsentScreen> {
               ),
             ),
             const SizedBox(height: 24),
+            if (_error != null)
+              Text(
+                _error!,
+                textAlign: TextAlign.center,
+                style: TextStyle(color: theme.colorScheme.error),
+              ),
+            if (_error != null) const SizedBox(height: 12),
             Text(
               'Read the consent statement aloud to the parent.',
               textAlign: TextAlign.center,

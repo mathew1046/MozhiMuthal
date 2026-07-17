@@ -5,6 +5,7 @@ import ai.onnxruntime.OrtEnvironment
 import ai.onnxruntime.OrtSession
 import android.util.Log
 import java.nio.FloatBuffer
+import kotlin.math.exp
 
 data class SpeakerSegment(val start_ms: Long, val end_ms: Long, val speaker: String)
 
@@ -40,7 +41,10 @@ class PyannoteRunner {
             val shape = longArrayOf(1, 1, pcm.size.toLong())
             val tensor = OnnxTensor.createTensor(env, FloatBuffer.wrap(floatArray), shape)
             
-            val result = session?.run(mapOf("input" to tensor))
+            // This pinned export declares its waveform input as `input_values`.
+            // Supplying the old generic `input` name caused every inference to
+            // fail and downstream biomarker values to remain zero.
+            val result = session?.run(mapOf("input_values" to tensor))
             val output = result?.get(0)?.value
             result?.close()
             tensor.close()
@@ -62,7 +66,13 @@ class PyannoteRunner {
         for (i in frames.indices) {
             val scores = frames[i] as? FloatArray ?: continue
             val best = scores.indices.maxByOrNull { scores[it] } ?: continue
-            if (scores[best] >= 0.5f) active += (i * frameMs).toLong() to ((i + 1) * frameMs).toLong()
+            // This export returns log-probabilities: silence is class 0 and
+            // all scores are <= 0. Treating those values as probabilities made
+            // the old >= 0.5 check impossible and yielded no segments.
+            val probability = exp(scores[best].toDouble())
+            if (best != 0 && probability >= 0.5) {
+                active += (i * frameMs).toLong() to ((i + 1) * frameMs).toLong()
+            }
         }
         if (active.isEmpty()) return emptyList()
         val turns = mutableListOf<SpeakerSegment>()

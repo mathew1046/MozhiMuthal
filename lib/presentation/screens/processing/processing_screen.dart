@@ -53,12 +53,16 @@ class _ProcessingScreenState extends ConsumerState<ProcessingScreen>
     final features = SessionFeatures.fromJson(rawResult);
     final result = ScoringEngine.score(features);
 
-    ref.read(sessionProvider.notifier).setResult(
+    ref
+        .read(sessionProvider.notifier)
+        .setResult(
           result: result,
           vttlMs: features.vttlMs,
           pfvStd: features.pfvStd,
           cvrRatio: features.cvrRatio,
           audioSource: features.audioSourceUsed,
+          waveform: features.waveform,
+          decisionTrace: features.decisionTrace,
         );
 
     if (mounted) {
@@ -93,14 +97,16 @@ class _ProcessingScreenState extends ConsumerState<ProcessingScreen>
                       final offset =
                           (_controller.value * 2 * 3.14159 + i * 0.5);
                       final scale =
-                          0.5 + 0.5 * ((offset % (2 * 3.14159)) / (2 * 3.14159));
+                          0.5 +
+                          0.5 * ((offset % (2 * 3.14159)) / (2 * 3.14159));
                       return Container(
                         margin: const EdgeInsets.symmetric(horizontal: 3),
                         width: 6,
                         height: 12 + 20 * scale,
                         decoration: BoxDecoration(
-                          color: theme.colorScheme.primary
-                              .withOpacity(0.3 + 0.7 * scale),
+                          color: theme.colorScheme.primary.withOpacity(
+                            0.3 + 0.7 * scale,
+                          ),
                           borderRadius: BorderRadius.circular(3),
                         ),
                       );

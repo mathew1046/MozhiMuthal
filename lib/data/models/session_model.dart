@@ -25,6 +25,8 @@ class SessionModel {
   final double childVoicedSeconds;
   final bool demoSession;
   final int retryCount;
+  final String? questionnaireState;
+  final Map<String, bool> questionnaireAnswers;
 
   const SessionModel({
     required this.id,
@@ -51,6 +53,8 @@ class SessionModel {
     this.childVoicedSeconds = 0,
     this.demoSession = false,
     this.retryCount = 0,
+    this.questionnaireState,
+    this.questionnaireAnswers = const {},
   });
 
   SessionModel copyWith({
@@ -92,81 +96,97 @@ class SessionModel {
   }
 
   Map<String, dynamic> toMap() => {
-        'id': id,
-        'anganwadi_id': anganwadiId,
-        'worker_name': workerName,
-        'child_name': childName,
-        'child_age_months': childAgeMonths,
-        'session_date': sessionDate.toIso8601String(),
-        'risk_level': riskLevel.name,
-        'vttl_ms': vttlMs,
-        'pfv_std': pfvStd,
-        'cvr_ratio': cvrRatio,
-        'vttl_flagged': vttlFlagged ? 1 : 0,
-        'pfv_flagged': pfvFlagged ? 1 : 0,
-        'cvr_flagged': cvrFlagged ? 1 : 0,
-        'audio_source': audioSourceUsed,
-        'synced': syncedToCloud ? 1 : 0,
-        'district_code': districtCode,
-        'child_uuid': childUuid,
-        'analysis_status': analysisStatus,
-        'quality_reasons': qualityReasons.join('|'),
-        'transition_count': transitionCount,
-        'voiced_seconds': voicedSeconds,
-        'child_voiced_seconds': childVoicedSeconds,
-        'demo_session': demoSession ? 1 : 0,
-        'retry_count': retryCount,
-      };
+    'id': id,
+    'anganwadi_id': anganwadiId,
+    'worker_name': workerName,
+    'child_name': childName,
+    'child_age_months': childAgeMonths,
+    'session_date': sessionDate.toIso8601String(),
+    'risk_level': riskLevel.name,
+    'vttl_ms': vttlMs,
+    'pfv_std': pfvStd,
+    'cvr_ratio': cvrRatio,
+    'vttl_flagged': vttlFlagged ? 1 : 0,
+    'pfv_flagged': pfvFlagged ? 1 : 0,
+    'cvr_flagged': cvrFlagged ? 1 : 0,
+    'audio_source': audioSourceUsed,
+    'synced': syncedToCloud ? 1 : 0,
+    'district_code': districtCode,
+    'child_uuid': childUuid,
+    'analysis_status': analysisStatus,
+    'quality_reasons': qualityReasons.join('|'),
+    'transition_count': transitionCount,
+    'voiced_seconds': voicedSeconds,
+    'child_voiced_seconds': childVoicedSeconds,
+    'demo_session': demoSession ? 1 : 0,
+    'retry_count': retryCount,
+    'questionnaire_state': questionnaireState,
+    'questionnaire_answers': questionnaireAnswers.entries
+        .map((e) => '${e.key}:${e.value}')
+        .join('|'),
+  };
 
   factory SessionModel.fromMap(Map<String, dynamic> map) => SessionModel(
-        id: map['id'] as String,
-        anganwadiId: map['anganwadi_id'] as String,
-        workerName: map['worker_name'] as String? ?? '',
-        childName: map['child_name'] as String?,
-        childAgeMonths: map['child_age_months'] as int,
-        sessionDate: DateTime.parse(map['session_date'] as String),
-        riskLevel: RiskLevel.values.firstWhere(
-          (e) => e.name == map['risk_level'],
-          orElse: () => RiskLevel.green,
-        ),
-        vttlMs: (map['vttl_ms'] as num).toDouble(),
-        pfvStd: (map['pfv_std'] as num).toDouble(),
-        cvrRatio: (map['cvr_ratio'] as num).toDouble(),
-        vttlFlagged: map['vttl_flagged'] == 1,
-        pfvFlagged: map['pfv_flagged'] == 1,
-        cvrFlagged: map['cvr_flagged'] == 1,
-        audioSourceUsed: map['audio_source'] as String? ?? 'UNPROCESSED',
-        syncedToCloud: map['synced'] == 1,
-        districtCode: map['district_code'] as String? ?? '',
-        childUuid: map['child_uuid'] as String?,
-        analysisStatus: map['analysis_status'] as String? ?? 'COMPLETE',
-        qualityReasons: (map['quality_reasons'] as String? ?? '').split('|').where((e) => e.isNotEmpty).toList(),
-        transitionCount: (map['transition_count'] as num?)?.toInt() ?? 0,
-        voicedSeconds: (map['voiced_seconds'] as num?)?.toDouble() ?? 0,
-        childVoicedSeconds: (map['child_voiced_seconds'] as num?)?.toDouble() ?? 0,
-        demoSession: map['demo_session'] == 1,
-        retryCount: (map['retry_count'] as num?)?.toInt() ?? 0,
-      );
+    id: map['id'] as String,
+    anganwadiId: map['anganwadi_id'] as String,
+    workerName: map['worker_name'] as String? ?? '',
+    childName: map['child_name'] as String?,
+    childAgeMonths: map['child_age_months'] as int,
+    sessionDate: DateTime.parse(map['session_date'] as String),
+    riskLevel: RiskLevel.values.firstWhere(
+      (e) => e.name == map['risk_level'],
+      orElse: () => RiskLevel.green,
+    ),
+    vttlMs: (map['vttl_ms'] as num).toDouble(),
+    pfvStd: (map['pfv_std'] as num).toDouble(),
+    cvrRatio: (map['cvr_ratio'] as num).toDouble(),
+    vttlFlagged: map['vttl_flagged'] == 1,
+    pfvFlagged: map['pfv_flagged'] == 1,
+    cvrFlagged: map['cvr_flagged'] == 1,
+    audioSourceUsed: map['audio_source'] as String? ?? 'UNPROCESSED',
+    syncedToCloud: map['synced'] == 1,
+    districtCode: map['district_code'] as String? ?? '',
+    childUuid: map['child_uuid'] as String?,
+    analysisStatus: map['analysis_status'] as String? ?? 'COMPLETE',
+    qualityReasons: (map['quality_reasons'] as String? ?? '')
+        .split('|')
+        .where((e) => e.isNotEmpty)
+        .toList(),
+    transitionCount: (map['transition_count'] as num?)?.toInt() ?? 0,
+    voicedSeconds: (map['voiced_seconds'] as num?)?.toDouble() ?? 0,
+    childVoicedSeconds: (map['child_voiced_seconds'] as num?)?.toDouble() ?? 0,
+    demoSession: map['demo_session'] == 1,
+    retryCount: (map['retry_count'] as num?)?.toInt() ?? 0,
+    questionnaireState: map['questionnaire_state'] as String?,
+    questionnaireAnswers: (map['questionnaire_answers'] as String? ?? '')
+        .split('|')
+        .where((e) => e.contains(':'))
+        .fold(<String, bool>{}, (out, item) {
+          final pair = item.split(':');
+          out[pair.first] = pair.last == 'true';
+          return out;
+        }),
+  );
 
   Map<String, dynamic> toSupabaseJson() => {
-        'id': id,
-        'anganwadi_id': anganwadiId,
-        'district_code': districtCode,
-        'child_age_months': childAgeMonths,
-        'risk_level': riskLevel.name,
-        'vttl_ms': vttlMs,
-        'pfv_std': pfvStd,
-        'cvr_ratio': cvrRatio,
-        'vttl_flagged': vttlFlagged,
-        'pfv_flagged': pfvFlagged,
-        'cvr_flagged': cvrFlagged,
-        'audio_source': audioSourceUsed,
-        'session_date': sessionDate.toIso8601String(),
-        'analysis_status': analysisStatus,
-        'quality_reasons': qualityReasons,
-        'transition_count': transitionCount,
-        'voiced_seconds': voicedSeconds,
-        'child_voiced_seconds': childVoicedSeconds,
-        'demo_session': demoSession,
-      };
+    'id': id,
+    'anganwadi_id': anganwadiId,
+    'district_code': districtCode,
+    'child_age_months': childAgeMonths,
+    'risk_level': riskLevel.name,
+    'vttl_ms': vttlMs,
+    'pfv_std': pfvStd,
+    'cvr_ratio': cvrRatio,
+    'vttl_flagged': vttlFlagged,
+    'pfv_flagged': pfvFlagged,
+    'cvr_flagged': cvrFlagged,
+    'audio_source': audioSourceUsed,
+    'session_date': sessionDate.toIso8601String(),
+    'analysis_status': analysisStatus,
+    'quality_reasons': qualityReasons,
+    'transition_count': transitionCount,
+    'voiced_seconds': voicedSeconds,
+    'child_voiced_seconds': childVoicedSeconds,
+    'demo_session': demoSession,
+  };
 }

@@ -13,6 +13,8 @@ class SessionFeatures {
   final int transitionCount;
   final double voicedSeconds;
   final double childVoicedSeconds;
+  final List<double> waveform;
+  final List<Map<String, dynamic>> decisionTrace;
 
   const SessionFeatures({
     required this.vttlMs,
@@ -25,23 +27,32 @@ class SessionFeatures {
     this.transitionCount = 0,
     this.voicedSeconds = 0,
     this.childVoicedSeconds = 0,
+    this.waveform = const [],
+    this.decisionTrace = const [],
   });
 
   factory SessionFeatures.fromJson(Map<String, dynamic> json) =>
       SessionFeatures(
-        vttlMs: (json['vttl_ms'] as num).toDouble(),
-        pfvStd: (json['pfv_std'] as num).toDouble(),
-        cvrRatio: (json['cvr_ratio'] as num).toDouble(),
+        vttlMs: (json['vttl_ms'] as num?)?.toDouble() ?? 0,
+        pfvStd: (json['pfv_std'] as num?)?.toDouble() ?? 0,
+        cvrRatio: (json['cvr_ratio'] as num?)?.toDouble() ?? 0,
         childAgeMonths: json['child_age_months'] as int,
-        audioSourceUsed:
-            json['audio_source_used'] as String? ?? 'UNPROCESSED',
+        audioSourceUsed: json['audio_source_used'] as String? ?? 'UNPROCESSED',
         analysisStatus: json['analysis_status'] as String? ?? 'COMPLETE',
         qualityReasons: (json['quality_reasons'] as List? ?? const [])
-            .map((e) => e.toString()).toList(),
+            .map((e) => e.toString())
+            .toList(),
         transitionCount: (json['transition_count'] as num?)?.toInt() ?? 0,
         voicedSeconds: (json['voiced_seconds'] as num?)?.toDouble() ?? 0,
         childVoicedSeconds:
             (json['child_voiced_seconds'] as num?)?.toDouble() ?? 0,
+        waveform: (json['waveform'] as List? ?? const [])
+            .map((e) => (e as num).toDouble())
+            .toList(),
+        decisionTrace: (json['decision_trace'] as List? ?? const [])
+            .whereType<Map>()
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList(),
       );
 }
 
@@ -49,11 +60,14 @@ class ScoringEngine {
   ScoringEngine._();
 
   static BiomarkerResult score(SessionFeatures f) {
-    if (f.analysisStatus != 'COMPLETE' || f.qualityReasons.isNotEmpty ||
+    if (f.analysisStatus != 'COMPLETE' ||
+        f.qualityReasons.isNotEmpty ||
         f.audioSourceUsed == 'DEMO') {
-      return BiomarkerResult.incomplete(f.qualityReasons.isEmpty
-          ? const ['Audio quality did not meet the minimum requirements']
-          : f.qualityReasons);
+      return BiomarkerResult.incomplete(
+        f.qualityReasons.isEmpty
+            ? const ['Audio quality did not meet the minimum requirements']
+            : f.qualityReasons,
+      );
     }
     final bool vttlFlagged = f.vttlMs > AppConstants.vttlThresholdMs;
 
@@ -66,14 +80,17 @@ class ScoringEngine {
     final double cvrThreshold = AppConstants.cvrThresholds[ageBucket]!;
     final bool cvrFlagged = f.cvrRatio < cvrThreshold;
 
-    final int flagCount =
-        [vttlFlagged, pfvFlagged, cvrFlagged].where((f) => f).length;
+    final int flagCount = [
+      vttlFlagged,
+      pfvFlagged,
+      cvrFlagged,
+    ].where((f) => f).length;
 
     final RiskLevel level = flagCount >= 2
         ? RiskLevel.red
         : flagCount == 1
-            ? RiskLevel.yellow
-            : RiskLevel.green;
+        ? RiskLevel.yellow
+        : RiskLevel.green;
 
     return BiomarkerResult(
       riskLevel: level,
