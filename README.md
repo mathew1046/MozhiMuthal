@@ -59,6 +59,20 @@ mozhimuthal/
 6. **Result** — RED / YELLOW / GREEN with Malayalam explanation + biomarker chips
 7. **Referral** (RED only) — PDF letter with nearest DEIC address, WhatsApp share
 
+## Android Screen Gallery
+
+Captured on a 1080 × 2408 Android device using the debug build.
+
+| Home | Child details |
+| --- | --- |
+| ![Home screen](artifacts/screenshots/android/01-home.png) | ![Child details screen](artifacts/screenshots/android/02-child-profile.png) |
+| Development questionnaire | Consent |
+| ![Development questionnaire screen](artifacts/screenshots/android/03-questionnaire.png) | ![Consent screen](artifacts/screenshots/android/04-consent.png) |
+| Elicitation protocol | Protocol 2 state |
+| ![Elicitation protocol screen](artifacts/screenshots/android/05-elicitation.png) | ![Second protocol screen](artifacts/screenshots/android/06-protocol-2-blocked.png) |
+| Settings | Past results |
+| ![Settings screen](artifacts/screenshots/android/08-settings.png) | ![Past results screen](artifacts/screenshots/android/09-history.png) |
+
 ## Biomarkers
 
 | Biomarker | What it measures | Flagged when |
