@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'biomarker_result.dart';
 
 class SessionModel {
@@ -6,6 +8,8 @@ class SessionModel {
   final String workerName;
   final String? childName;
   final int childAgeMonths;
+  final DateTime? childBirthDate;
+  final int? gestationalWeeks;
   final DateTime sessionDate;
   final RiskLevel riskLevel;
   final double vttlMs;
@@ -25,8 +29,13 @@ class SessionModel {
   final double childVoicedSeconds;
   final bool demoSession;
   final int retryCount;
+  final String? questionnaireRunId;
+  final String? consentId;
   final String? questionnaireState;
-  final Map<String, bool> questionnaireAnswers;
+  final Map<String, String> questionnaireAnswers;
+  final Map<String, dynamic> questionnaireAnalysis;
+  final List<Map<String, dynamic>> decisionTrace;
+  final List<double> waveform;
 
   const SessionModel({
     required this.id,
@@ -34,6 +43,8 @@ class SessionModel {
     required this.workerName,
     this.childName,
     required this.childAgeMonths,
+    this.childBirthDate,
+    this.gestationalWeeks,
     required this.sessionDate,
     required this.riskLevel,
     required this.vttlMs,
@@ -53,8 +64,13 @@ class SessionModel {
     this.childVoicedSeconds = 0,
     this.demoSession = false,
     this.retryCount = 0,
+    this.questionnaireRunId,
+    this.consentId,
     this.questionnaireState,
     this.questionnaireAnswers = const {},
+    this.questionnaireAnalysis = const {},
+    this.decisionTrace = const [],
+    this.waveform = const [],
   });
 
   SessionModel copyWith({
@@ -81,6 +97,8 @@ class SessionModel {
       workerName: workerName ?? this.workerName,
       childName: childName ?? this.childName,
       childAgeMonths: childAgeMonths ?? this.childAgeMonths,
+      childBirthDate: childBirthDate,
+      gestationalWeeks: gestationalWeeks,
       sessionDate: sessionDate ?? this.sessionDate,
       riskLevel: riskLevel ?? this.riskLevel,
       vttlMs: vttlMs ?? this.vttlMs,
@@ -92,6 +110,21 @@ class SessionModel {
       audioSourceUsed: audioSourceUsed ?? this.audioSourceUsed,
       syncedToCloud: syncedToCloud ?? this.syncedToCloud,
       districtCode: districtCode ?? this.districtCode,
+      childUuid: childUuid,
+      analysisStatus: analysisStatus,
+      qualityReasons: qualityReasons,
+      transitionCount: transitionCount,
+      voicedSeconds: voicedSeconds,
+      childVoicedSeconds: childVoicedSeconds,
+      demoSession: demoSession,
+      retryCount: retryCount,
+      questionnaireRunId: questionnaireRunId,
+      consentId: consentId,
+      questionnaireState: questionnaireState,
+      questionnaireAnswers: questionnaireAnswers,
+      questionnaireAnalysis: questionnaireAnalysis,
+      decisionTrace: decisionTrace,
+      waveform: waveform,
     );
   }
 
@@ -101,6 +134,8 @@ class SessionModel {
     'worker_name': workerName,
     'child_name': childName,
     'child_age_months': childAgeMonths,
+    'child_birth_date': childBirthDate?.toIso8601String(),
+    'gestational_weeks': gestationalWeeks,
     'session_date': sessionDate.toIso8601String(),
     'risk_level': riskLevel.name,
     'vttl_ms': vttlMs,
@@ -120,10 +155,13 @@ class SessionModel {
     'child_voiced_seconds': childVoicedSeconds,
     'demo_session': demoSession ? 1 : 0,
     'retry_count': retryCount,
+    'questionnaire_run_id': questionnaireRunId,
+    'consent_id': consentId,
     'questionnaire_state': questionnaireState,
-    'questionnaire_answers': questionnaireAnswers.entries
-        .map((e) => '${e.key}:${e.value}')
-        .join('|'),
+    'questionnaire_answers': jsonEncode(questionnaireAnswers),
+    'questionnaire_analysis': jsonEncode(questionnaireAnalysis),
+    'decision_trace': jsonEncode(decisionTrace),
+    'waveform': jsonEncode(waveform),
   };
 
   factory SessionModel.fromMap(Map<String, dynamic> map) => SessionModel(
@@ -132,6 +170,10 @@ class SessionModel {
     workerName: map['worker_name'] as String? ?? '',
     childName: map['child_name'] as String?,
     childAgeMonths: map['child_age_months'] as int,
+    childBirthDate: (map['child_birth_date'] as String?) == null
+        ? null
+        : DateTime.parse(map['child_birth_date'] as String),
+    gestationalWeeks: (map['gestational_weeks'] as num?)?.toInt(),
     sessionDate: DateTime.parse(map['session_date'] as String),
     riskLevel: RiskLevel.values.firstWhere(
       (e) => e.name == map['risk_level'],
@@ -157,22 +199,31 @@ class SessionModel {
     childVoicedSeconds: (map['child_voiced_seconds'] as num?)?.toDouble() ?? 0,
     demoSession: map['demo_session'] == 1,
     retryCount: (map['retry_count'] as num?)?.toInt() ?? 0,
+    questionnaireRunId: map['questionnaire_run_id'] as String?,
+    consentId: map['consent_id'] as String?,
     questionnaireState: map['questionnaire_state'] as String?,
-    questionnaireAnswers: (map['questionnaire_answers'] as String? ?? '')
-        .split('|')
-        .where((e) => e.contains(':'))
-        .fold(<String, bool>{}, (out, item) {
-          final pair = item.split(':');
-          out[pair.first] = pair.last == 'true';
-          return out;
-        }),
+    questionnaireAnswers: _decodeStringMap(
+      map['questionnaire_answers'] as String? ?? '',
+    ),
+    questionnaireAnalysis: _decodeMap(
+      map['questionnaire_analysis'] as String? ?? '{}',
+    ),
+    decisionTrace: _decodeMapList(map['decision_trace'] as String? ?? '[]'),
+    waveform: _decodeDoubleList(map['waveform'] as String? ?? '[]'),
   );
 
   Map<String, dynamic> toSupabaseJson() => {
     'id': id,
+    'session_id': id,
+    'child_id': childUuid,
+    'questionnaire_run_id': questionnaireRunId,
+    'consent_id': consentId,
+    'pseudonym': childName ?? childUuid ?? 'local-child',
     'anganwadi_id': anganwadiId,
     'district_code': districtCode,
     'child_age_months': childAgeMonths,
+    'child_birth_date': childBirthDate?.toIso8601String(),
+    'gestational_weeks': gestationalWeeks,
     'risk_level': riskLevel.name,
     'vttl_ms': vttlMs,
     'pfv_std': pfvStd,
@@ -188,5 +239,47 @@ class SessionModel {
     'voiced_seconds': voicedSeconds,
     'child_voiced_seconds': childVoicedSeconds,
     'demo_session': demoSession,
+    'engine_version': questionnaireAnalysis['engine_version'],
+    'questionnaire_state': questionnaireState,
+    'answers': questionnaireAnswers,
+    'questionnaire_analysis': questionnaireAnalysis,
+    'decision_trace': decisionTrace,
+    'waveform': waveform,
   };
+}
+
+Map<String, String> _decodeStringMap(String value) {
+  if (value.trim().isEmpty) return const {};
+  if (value.trim().startsWith('{')) {
+    final decoded = jsonDecode(value) as Map<String, dynamic>;
+    return decoded.map((key, value) => MapEntry(key, value.toString()));
+  }
+  return value.split('|').where((e) => e.contains(':')).fold(
+    <String, String>{},
+    (out, item) {
+      final index = item.indexOf(':');
+      out[item.substring(0, index)] = item.substring(index + 1) == 'true'
+          ? 'achieved'
+          : 'notYet';
+      return out;
+    },
+  );
+}
+
+Map<String, dynamic> _decodeMap(String value) {
+  if (value.trim().isEmpty) return const {};
+  final decoded = jsonDecode(value) as Map<String, dynamic>;
+  return decoded;
+}
+
+List<Map<String, dynamic>> _decodeMapList(String value) {
+  if (value.trim().isEmpty) return const [];
+  final decoded = jsonDecode(value) as List<dynamic>;
+  return decoded.map((item) => Map<String, dynamic>.from(item as Map)).toList();
+}
+
+List<double> _decodeDoubleList(String value) {
+  if (value.trim().isEmpty) return const [];
+  final decoded = jsonDecode(value) as List<dynamic>;
+  return decoded.map((v) => (v as num).toDouble()).toList();
 }

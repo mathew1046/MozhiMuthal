@@ -26,7 +26,7 @@ class ResultScreen extends ConsumerWidget {
         title: const Text('Result'),
         automaticallyImplyLeading: false,
       ),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -79,7 +79,10 @@ class ResultScreen extends ConsumerWidget {
             const SizedBox(height: 28),
 
             if (session.questionnaireState != null) ...[
-              _QuestionnaireSummary(state: session.questionnaireState!),
+              _QuestionnaireSummary(
+                state: session.questionnaireState!,
+                evaluation: session.questionnaireEvaluation,
+              ),
               const SizedBox(height: 16),
             ],
 
@@ -131,7 +134,7 @@ class ResultScreen extends ConsumerWidget {
               ),
             ),
 
-            const Spacer(),
+            const SizedBox(height: 28),
 
             // Save & referral
             if (result.riskLevel == RiskLevel.red)
@@ -179,17 +182,80 @@ class ResultScreen extends ConsumerWidget {
 }
 
 class _QuestionnaireSummary extends StatelessWidget {
-  const _QuestionnaireSummary({required this.state});
+  const _QuestionnaireSummary({required this.state, this.evaluation});
   final MyChildState state;
+  final MyChildEvaluation? evaluation;
+
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(12),
-    decoration: BoxDecoration(
-      border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
-      borderRadius: BorderRadius.circular(10),
-    ),
-    child: Text(
-      'Development questionnaire: ${MyChildEngine.tier(state)} — ${state.name}.\nThis parent-report result supports, but does not replace, the acoustic screening.',
-    ),
-  );
+  Widget build(BuildContext context) {
+    final e = evaluation;
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Development questionnaire: ${MyChildEngine.tier(state)} — ${state.name}.',
+            style: const TextStyle(fontWeight: FontWeight.w700),
+          ),
+          if (e != null) ...[
+            const SizedBox(height: 6),
+            Text(e.message),
+            Text(
+              'Scored age: ${e.effectiveAgeMonths.toStringAsFixed(1)} months${e.correctedAgeUsed ? ' corrected' : ''}',
+              style: const TextStyle(fontSize: 12),
+            ),
+            const SizedBox(height: 12),
+            ...e.domains.values.map(
+              (d) => ExpansionTile(
+                tilePadding: EdgeInsets.zero,
+                title: Text(d.domain),
+                subtitle: Text(d.status.replaceAll('_', ' ')),
+                children: [
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(d.explanation),
+                  ),
+                  const SizedBox(height: 6),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Flags ${d.flagCount} · Warnings ${d.warningCount} · Precautions ${d.precautionCount} · Confidence ${d.confidence}',
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            ExpansionTile(
+              tilePadding: EdgeInsets.zero,
+              title: const Text('Question-level explanations'),
+              children: e.questions
+                  .where((q) => q.severity != MyChildSeverity.normal)
+                  .map(
+                    (q) => ListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(q.question.malayalam ?? q.question.prompt),
+                      subtitle: Text(
+                        '${q.severity.name}: ${q.detail.appliedRule}\n${q.detail.recommendedAction}',
+                      ),
+                    ),
+                  )
+                  .toList(),
+            ),
+          ],
+          const SizedBox(height: 8),
+          const Text(
+            'This parent-report result supports, but does not replace, the acoustic screening.',
+            style: TextStyle(fontSize: 12),
+          ),
+        ],
+      ),
+    );
+  }
 }

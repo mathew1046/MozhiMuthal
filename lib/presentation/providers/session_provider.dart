@@ -17,8 +17,9 @@ class SessionState {
   final bool isComplete;
   final List<double> waveform;
   final List<Map<String, dynamic>> decisionTrace;
-  final Map<String, bool> questionnaireAnswers;
+  final Map<String, MyChildAnswer> questionnaireAnswers;
   final MyChildState? questionnaireState;
+  final MyChildEvaluation? questionnaireEvaluation;
 
   const SessionState({
     this.childProfile,
@@ -32,6 +33,7 @@ class SessionState {
     this.decisionTrace = const [],
     this.questionnaireAnswers = const {},
     this.questionnaireState,
+    this.questionnaireEvaluation,
   });
 
   SessionState copyWith({
@@ -44,8 +46,9 @@ class SessionState {
     bool? isComplete,
     List<double>? waveform,
     List<Map<String, dynamic>>? decisionTrace,
-    Map<String, bool>? questionnaireAnswers,
+    Map<String, MyChildAnswer>? questionnaireAnswers,
     MyChildState? questionnaireState,
+    MyChildEvaluation? questionnaireEvaluation,
   }) {
     return SessionState(
       childProfile: childProfile ?? this.childProfile,
@@ -59,6 +62,8 @@ class SessionState {
       decisionTrace: decisionTrace ?? this.decisionTrace,
       questionnaireAnswers: questionnaireAnswers ?? this.questionnaireAnswers,
       questionnaireState: questionnaireState ?? this.questionnaireState,
+      questionnaireEvaluation:
+          questionnaireEvaluation ?? this.questionnaireEvaluation,
     );
   }
 }
@@ -71,12 +76,13 @@ class SessionNotifier extends StateNotifier<SessionState> {
   }
 
   void setQuestionnaire(
-    Map<String, bool> answers,
-    MyChildState questionnaireState,
+    Map<String, MyChildAnswer> answers,
+    MyChildEvaluation evaluation,
   ) {
     state = state.copyWith(
       questionnaireAnswers: answers,
-      questionnaireState: questionnaireState,
+      questionnaireState: evaluation.state,
+      questionnaireEvaluation: evaluation,
     );
   }
 
@@ -112,6 +118,8 @@ class SessionNotifier extends StateNotifier<SessionState> {
       workerName: workerName,
       childName: profile.childName,
       childAgeMonths: profile.childAgeMonths,
+      childBirthDate: profile.birthDate,
+      gestationalWeeks: profile.gestationalWeeks,
       sessionDate: DateTime.now(),
       riskLevel: result.riskLevel,
       vttlMs: state.vttlMs,
@@ -122,8 +130,17 @@ class SessionNotifier extends StateNotifier<SessionState> {
       cvrFlagged: result.cvrFlagged,
       audioSourceUsed: state.audioSource,
       districtCode: profile.districtCode,
+      childUuid: profile.childUuid,
+      questionnaireRunId: const Uuid().v4(),
+      consentId: const Uuid().v4(),
       questionnaireState: state.questionnaireState?.name,
-      questionnaireAnswers: state.questionnaireAnswers,
+      questionnaireAnswers: state.questionnaireAnswers.map(
+        (key, value) => MapEntry(key, value.name),
+      ),
+      questionnaireAnalysis:
+          state.questionnaireEvaluation?.toJson() ?? const {},
+      decisionTrace: state.decisionTrace,
+      waveform: state.waveform,
     );
 
     await SessionRepository().saveSession(session);

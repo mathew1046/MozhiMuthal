@@ -6,7 +6,7 @@ import '../models/session_model.dart';
 class DatabaseHelper {
   static Database? _database;
   static const _dbName = 'mozhimuthal.db';
-  static const _dbVersion = 3;
+  static const _dbVersion = 4;
   static const _tableSessions = 'sessions';
   static final List<SessionModel> _webSessions = [];
 
@@ -46,6 +46,19 @@ class DatabaseHelper {
             "ALTER TABLE sessions ADD COLUMN questionnaire_answers TEXT NOT NULL DEFAULT ''",
           );
         }
+        if (oldVersion < 4) {
+          for (final sql in const [
+            'ALTER TABLE sessions ADD COLUMN child_birth_date TEXT',
+            'ALTER TABLE sessions ADD COLUMN gestational_weeks INTEGER',
+            'ALTER TABLE sessions ADD COLUMN questionnaire_run_id TEXT',
+            'ALTER TABLE sessions ADD COLUMN consent_id TEXT',
+            "ALTER TABLE sessions ADD COLUMN questionnaire_analysis TEXT NOT NULL DEFAULT '{}'",
+            "ALTER TABLE sessions ADD COLUMN decision_trace TEXT NOT NULL DEFAULT '[]'",
+            "ALTER TABLE sessions ADD COLUMN waveform TEXT NOT NULL DEFAULT '[]'",
+          ]) {
+            await db.execute(sql);
+          }
+        }
       },
     );
   }
@@ -58,6 +71,8 @@ class DatabaseHelper {
         worker_name TEXT,
         child_name TEXT,
         child_age_months INTEGER NOT NULL,
+        child_birth_date TEXT,
+        gestational_weeks INTEGER,
         session_date TEXT NOT NULL,
         risk_level TEXT NOT NULL,
         vttl_ms REAL,
@@ -79,6 +94,11 @@ class DatabaseHelper {
         retry_count INTEGER NOT NULL DEFAULT 0
         ,questionnaire_state TEXT
         ,questionnaire_answers TEXT NOT NULL DEFAULT ''
+        ,questionnaire_run_id TEXT
+        ,consent_id TEXT
+        ,questionnaire_analysis TEXT NOT NULL DEFAULT '{}'
+        ,decision_trace TEXT NOT NULL DEFAULT '[]'
+        ,waveform TEXT NOT NULL DEFAULT '[]'
       )
     ''');
   }
@@ -105,7 +125,8 @@ class DatabaseHelper {
         ..sort((a, b) => b.sessionDate.compareTo(a.sessionDate));
       return sessions.take(limit).toList();
     }
-    final db = await database;
+    final db = await _databaseOrNull();
+    if (db == null) return const [];
     final maps = await db.query(
       _tableSessions,
       orderBy: 'session_date DESC',
@@ -120,14 +141,16 @@ class DatabaseHelper {
         ..sort((a, b) => b.sessionDate.compareTo(a.sessionDate));
       return sessions;
     }
-    final db = await database;
+    final db = await _databaseOrNull();
+    if (db == null) return const [];
     final maps = await db.query(_tableSessions, orderBy: 'session_date DESC');
     return maps.map((m) => SessionModel.fromMap(m)).toList();
   }
 
   static Future<List<SessionModel>> getUnsyncedSessions() async {
     if (kIsWeb) return _webSessions.where((s) => !s.syncedToCloud).toList();
-    final db = await database;
+    final db = await _databaseOrNull();
+    if (db == null) return const [];
     final maps = await db.query(
       _tableSessions,
       where: 'synced = ?',
@@ -149,10 +172,19 @@ class DatabaseHelper {
 
   static Future<int> getUnsyncedCount() async {
     if (kIsWeb) return 0;
-    final db = await database;
+    final db = await _databaseOrNull();
+    if (db == null) return 0;
     final result = await db.rawQuery(
       'SELECT COUNT(*) as count FROM $_tableSessions WHERE synced = 0',
     );
     return Sqflite.firstIntValue(result) ?? 0;
+  }
+
+  static Future<Database?> _databaseOrNull() async {
+    try {
+      return await database;
+    } catch (_) {
+      return null;
+    }
   }
 }

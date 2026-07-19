@@ -6,21 +6,23 @@ import '../../providers/session_provider.dart';
 
 class QuestionnaireScreen extends ConsumerStatefulWidget {
   const QuestionnaireScreen({super.key});
+
   @override
   ConsumerState<QuestionnaireScreen> createState() =>
       _QuestionnaireScreenState();
 }
 
 class _QuestionnaireScreenState extends ConsumerState<QuestionnaireScreen> {
-  final Map<String, bool> _answers = {};
+  final Map<String, MyChildAnswer> _answers = {};
 
   @override
   Widget build(BuildContext context) {
     final profile = ref.watch(sessionProvider).childProfile;
-    if (profile == null)
+    if (profile == null) {
       return const Scaffold(
         body: Center(child: Text('Child details are required first.')),
       );
+    }
     final questions = MyChildEngine.forAge(profile.childAgeMonths);
     final complete = questions.every((q) => _answers.containsKey(q.id));
     return Scaffold(
@@ -31,8 +33,13 @@ class _QuestionnaireScreenState extends ConsumerState<QuestionnaireScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const Text(
-              'Ask the parent each age-appropriate question. This supports screening and is not a diagnosis.',
+              'Ask each age-appropriate MyChild milestone question. Malayalam text is saved with the answer; this is developmental monitoring, not a diagnosis.',
               style: TextStyle(fontSize: 13),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '${questions.length} questions for ${profile.childAgeMonths} months · Child ID ${profile.childUuid}',
+              style: const TextStyle(fontSize: 12),
             ),
             const SizedBox(height: 16),
             Expanded(
@@ -44,7 +51,7 @@ class _QuestionnaireScreenState extends ConsumerState<QuestionnaireScreen> {
                     )
                   : ListView.separated(
                       itemCount: questions.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 12),
+                      separatorBuilder: (_, _) => const SizedBox(height: 12),
                       itemBuilder: (context, index) {
                         final q = questions[index];
                         return Card(
@@ -54,26 +61,54 @@ class _QuestionnaireScreenState extends ConsumerState<QuestionnaireScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  q.malayalamDraft ?? q.prompt,
+                                  q.malayalam ?? q.prompt,
                                   style: const TextStyle(
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
+                                if (q.malayalamSubtext != null) ...[
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    q.malayalamSubtext!,
+                                    style: const TextStyle(fontSize: 12),
+                                  ),
+                                ],
                                 const SizedBox(height: 6),
                                 Text(
-                                  q.prompt,
+                                  '${q.prompt}${q.subtext == null ? '' : '\n${q.subtext}'}',
                                   style: const TextStyle(fontSize: 12),
                                 ),
+                                const SizedBox(height: 8),
+                                Wrap(
+                                  spacing: 6,
+                                  runSpacing: 6,
+                                  children: [
+                                    for (final tag in q.tags)
+                                      Chip(
+                                        label: Text(tag),
+                                        visualDensity: VisualDensity.compact,
+                                      ),
+                                    Chip(
+                                      label: Text('Weight ${q.weight}'),
+                                      visualDensity: VisualDensity.compact,
+                                    ),
+                                  ],
+                                ),
                                 const SizedBox(height: 12),
-                                SegmentedButton<bool>(
+                                SegmentedButton<MyChildAnswer>(
+                                  emptySelectionAllowed: true,
                                   segments: const [
                                     ButtonSegment(
-                                      value: true,
-                                      label: Text('Yes'),
+                                      value: MyChildAnswer.achieved,
+                                      label: Text('Achieved'),
                                     ),
                                     ButtonSegment(
-                                      value: false,
-                                      label: Text('No'),
+                                      value: MyChildAnswer.notYet,
+                                      label: Text('Not yet'),
+                                    ),
+                                    ButtonSegment(
+                                      value: MyChildAnswer.unsure,
+                                      label: Text('Unsure'),
                                     ),
                                   ],
                                   selected: _answers.containsKey(q.id)
@@ -83,6 +118,13 @@ class _QuestionnaireScreenState extends ConsumerState<QuestionnaireScreen> {
                                     () => _answers[q.id] = value.first,
                                   ),
                                 ),
+                                if (_answers[q.id] == MyChildAnswer.unsure) ...[
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    MyChildEngine.probesMalayalam(q).join('\n'),
+                                    style: const TextStyle(fontSize: 12),
+                                  ),
+                                ],
                               ],
                             ),
                           ),
@@ -93,15 +135,24 @@ class _QuestionnaireScreenState extends ConsumerState<QuestionnaireScreen> {
             FilledButton.icon(
               onPressed: complete
                   ? () {
-                      final state = MyChildEngine.evaluate(_answers);
+                      final evaluation = MyChildEngine.evaluateDetailed(
+                        ageMonths: profile.childAgeMonths,
+                        birthDate: profile.birthDate,
+                        gestationalWeeks: profile.gestationalWeeks,
+                        answers: _answers,
+                      );
                       ref
                           .read(sessionProvider.notifier)
-                          .setQuestionnaire(_answers, state);
+                          .setQuestionnaire(_answers, evaluation);
                       context.push('/consent');
                     }
                   : null,
               icon: const Icon(Icons.arrow_forward),
-              label: const Text('Continue to consent'),
+              label: Text(
+                complete
+                    ? 'Continue to consent'
+                    : 'Answer ${questions.length - _answers.length} more',
+              ),
             ),
           ],
         ),
