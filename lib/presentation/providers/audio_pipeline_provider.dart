@@ -64,5 +64,5 @@ class AudioPipelineNotifier extends StateNotifier<AudioPipelineState> {
 
 final audioPipelineProvider =
     StateNotifierProvider<AudioPipelineNotifier, AudioPipelineState>((ref) {
-  return AudioPipelineNotifier();
-});
+      return AudioPipelineNotifier();
+    });

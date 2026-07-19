@@ -45,11 +45,7 @@ class ProtocolCard extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           // Icon
-          Icon(
-            protocol.icon,
-            size: 64,
-            color: theme.colorScheme.primary,
-          ),
+          Icon(protocol.icon, size: 64, color: theme.colorScheme.primary),
           const SizedBox(height: 20),
 
           // Title
@@ -80,8 +76,7 @@ class ProtocolCard extends StatelessWidget {
                 CircularProgressIndicator(
                   value: progress.clamp(0.0, 1.0),
                   strokeWidth: 6,
-                  backgroundColor:
-                      theme.colorScheme.primary.withOpacity(0.1),
+                  backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
                 ),
                 Column(
                   mainAxisSize: MainAxisSize.min,
@@ -89,7 +84,9 @@ class ProtocolCard extends StatelessWidget {
                     Text(
                       '$elapsed',
                       style: const TextStyle(
-                          fontSize: 28, fontWeight: FontWeight.bold),
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     Text(
                       '/ ${protocol.durationSec}s',

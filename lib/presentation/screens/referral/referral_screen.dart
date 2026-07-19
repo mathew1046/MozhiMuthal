@@ -43,28 +43,33 @@ class ReferralScreen extends ConsumerWidget {
                   ),
                   const Divider(height: 24),
                   _InfoRow(
-                      label: 'Anganwadi ID',
-                      value: profile?.anganwadiId ?? '-'),
+                    label: 'Anganwadi ID',
+                    value: profile?.anganwadiId ?? '-',
+                  ),
                   const SizedBox(height: 6),
                   _InfoRow(
-                      label: 'Child Age',
-                      value: '${profile?.childAgeMonths ?? "-"} months'),
+                    label: 'Child Age',
+                    value: '${profile?.childAgeMonths ?? "-"} months',
+                  ),
                   const SizedBox(height: 6),
                   _InfoRow(
-                      label: 'VTTL',
-                      value:
-                          '${session.vttlMs.toStringAsFixed(0)} ms ${session.result?.vttlFlagged == true ? "⚠" : "✓"}'),
+                    label: 'VTTL',
+                    value:
+                        '${session.vttlMs.toStringAsFixed(0)} ms ${session.result?.vttlFlagged == true ? "⚠" : "✓"}',
+                  ),
                   const SizedBox(height: 6),
                   _InfoRow(
-                      label: 'CVR',
-                      value:
-                          '${session.cvrRatio.toStringAsFixed(3)} ${session.result?.cvrFlagged == true ? "⚠" : "✓"}'),
+                    label: 'CVR',
+                    value:
+                        '${session.cvrRatio.toStringAsFixed(3)} ${session.result?.cvrFlagged == true ? "⚠" : "✓"}',
+                  ),
                   if (profile != null && profile.childAgeMonths >= 36) ...[
                     const SizedBox(height: 6),
                     _InfoRow(
-                        label: 'PFV',
-                        value:
-                            '${session.pfvStd.toStringAsFixed(2)} ${session.result?.pfvFlagged == true ? "⚠" : "✓"}'),
+                      label: 'PFV',
+                      value:
+                          '${session.pfvStd.toStringAsFixed(2)} ${session.result?.pfvFlagged == true ? "⚠" : "✓"}',
+                    ),
                   ],
                   const SizedBox(height: 16),
                   Text(
@@ -92,7 +97,11 @@ class ReferralScreen extends ConsumerWidget {
                 );
                 if (!sent && context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Could not open WhatsApp. Please check if it is installed.')),
+                    const SnackBar(
+                      content: Text(
+                        'Could not open WhatsApp. Please check if it is installed.',
+                      ),
+                    ),
                   );
                 }
               },
@@ -130,13 +139,17 @@ class _InfoRow extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label,
-            style: TextStyle(
-              fontSize: 13,
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
-            )),
-        Text(value,
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
+          ),
+        ),
+        Text(
+          value,
+          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+        ),
       ],
     );
   }

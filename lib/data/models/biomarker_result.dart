@@ -22,12 +22,13 @@ class BiomarkerResult {
   });
 
   const BiomarkerResult.incomplete(this.qualityReasons)
-      : riskLevel = RiskLevel.yellow,
-        vttlFlagged = false,
-        pfvFlagged = false,
-        cvrFlagged = false,
-        incomplete = true,
-        malayalamExplanation = 'Incomplete—repeat recording. ഇത് രോഗനിർണ്ണയം അല്ല.';
+    : riskLevel = RiskLevel.yellow,
+      vttlFlagged = false,
+      pfvFlagged = false,
+      cvrFlagged = false,
+      incomplete = true,
+      malayalamExplanation =
+          'Incomplete—repeat recording. ഇത് രോഗനിർണ്ണയം അല്ല.';
 
   int get flagCount =>
       [vttlFlagged, pfvFlagged, cvrFlagged].where((f) => f).length;
@@ -56,12 +57,12 @@ class BiomarkerResult {
   }
 
   Map<String, dynamic> toJson() => {
-        'risk_level': riskLevel.name,
-        'vttl_flagged': vttlFlagged,
-        'pfv_flagged': pfvFlagged,
-        'cvr_flagged': cvrFlagged,
-        'malayalam_explanation': malayalamExplanation,
-        'incomplete': incomplete,
-        'quality_reasons': qualityReasons,
-      };
+    'risk_level': riskLevel.name,
+    'vttl_flagged': vttlFlagged,
+    'pfv_flagged': pfvFlagged,
+    'cvr_flagged': cvrFlagged,
+    'malayalam_explanation': malayalamExplanation,
+    'incomplete': incomplete,
+    'quality_reasons': qualityReasons,
+  };
 }

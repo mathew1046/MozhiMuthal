@@ -27,7 +27,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _nameController.text = prefs.getString('worker_name') ?? '';
     _anganwadiController.text = prefs.getString('default_anganwadi') ?? '';
     _demoMode = prefs.getBool('demo_mode') ?? false;
-    AudioPipelineService.mode = _demoMode ? AudioPipelineMode.demo : AudioPipelineMode.live;
+    AudioPipelineService.mode = _demoMode
+        ? AudioPipelineMode.demo
+        : AudioPipelineMode.live;
     if (!mounted) return;
     setState(() => _loaded = true);
   }
@@ -36,14 +38,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('worker_name', _nameController.text.trim());
     await prefs.setString(
-        'default_anganwadi', _anganwadiController.text.trim());
+      'default_anganwadi',
+      _anganwadiController.text.trim(),
+    );
     await prefs.setBool('demo_mode', _demoMode);
-    AudioPipelineService.mode = _demoMode ? AudioPipelineMode.demo : AudioPipelineMode.live;
+    AudioPipelineService.mode = _demoMode
+        ? AudioPipelineMode.demo
+        : AudioPipelineMode.live;
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Settings saved')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Settings saved')));
       context.pop();
     }
   }
