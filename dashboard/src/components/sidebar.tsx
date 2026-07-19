@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, MapPin, ClipboardList } from "lucide-react";
+import { LayoutDashboard, MapPin, ClipboardList, Search } from "lucide-react";
 
 const nav = [
   { href: "/", label: "Overview", icon: LayoutDashboard },
   { href: "/districts", label: "Districts", icon: MapPin },
   { href: "/screenings", label: "Screenings", icon: ClipboardList },
+  { href: "/children", label: "Child Lookup", icon: Search },
 ];
 
 export function Sidebar() {
