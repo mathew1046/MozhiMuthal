@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
+import '../../../data/models/biomarker_result.dart';
 import '../../providers/session_provider.dart';
 import '../../providers/sync_provider.dart';
-import '../../../data/models/biomarker_result.dart';
+import '../../widgets/app_ui.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -16,7 +18,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    // Refresh sync count and sessions on load
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(syncProvider.notifier).refreshCount();
       ref.invalidate(pastSessionsProvider);
@@ -28,197 +29,321 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final syncState = ref.watch(syncProvider);
     final sessionsAsync = ref.watch(pastSessionsProvider);
     final theme = Theme.of(context);
+    final colors = theme.colorScheme;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('MozhiMuthal'),
+        toolbarHeight: 78,
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('MozhiMuthal', style: theme.textTheme.titleLarge),
+            Text('Early childhood screening', style: theme.textTheme.bodySmall),
+          ],
+        ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.settings_outlined),
-            onPressed: () => context.push('/settings'),
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: IconButton.filledTonal(
+              tooltip: 'Settings',
+              onPressed: () => context.push('/settings'),
+              icon: const Icon(Icons.tune_rounded),
+            ),
           ),
         ],
       ),
-      body: Column(
-        children: [
-          // Sync bar
-          if (syncState.pendingCount > 0)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              color: theme.colorScheme.primary.withOpacity(0.1),
-              child: Row(
-                children: [
-                  Icon(Icons.cloud_upload_outlined,
-                      size: 18, color: theme.colorScheme.primary),
-                  const SizedBox(width: 8),
-                  Text(
-                    '${syncState.pendingCount} unsynced',
-                    style: TextStyle(
-                        fontSize: 13, color: theme.colorScheme.onSurface),
-                  ),
-                  const Spacer(),
-                  SizedBox(
-                    height: 32,
-                    child: TextButton(
-                      onPressed: syncState.isSyncing
-                          ? null
-                          : () => ref.read(syncProvider.notifier).syncAll(),
-                      child: syncState.isSyncing
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2))
-                          : const Text('Sync Now', style: TextStyle(fontSize: 13)),
+      body: SafeArea(
+        top: false,
+        child: RefreshIndicator(
+          onRefresh: () async {
+            await ref.read(syncProvider.notifier).refreshCount();
+            ref.invalidate(pastSessionsProvider);
+          },
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(20, 10, 20, 120),
+                sliver: SliverList(
+                  delegate: SliverChildListDelegate([
+                    const PageIntro(
+                      eyebrow: 'Screening workspace',
+                      title: 'Every voice deserves to be heard.',
+                      subtitle:
+                          'Record a guided play session and keep a clear local record for follow-up.',
                     ),
-                  ),
-                ],
-              ),
-            ),
-
-          // Sessions list
-          Expanded(
-            child: sessionsAsync.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Center(child: Text('Error: $e')),
-              data: (sessions) {
-                if (sessions.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                    const SizedBox(height: 24),
+                    if (syncState.pendingCount > 0) ...[
+                      _SyncCard(syncState: syncState),
+                      const SizedBox(height: 24),
+                    ],
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Icon(Icons.graphic_eq,
-                            size: 64,
-                            color: theme.colorScheme.primary.withOpacity(0.3)),
-                        const SizedBox(height: 16),
                         Text(
-                          'No screenings yet',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color:
-                                theme.colorScheme.onSurface.withOpacity(0.5),
-                          ),
+                          'Recent screenings',
+                          style: theme.textTheme.titleMedium,
                         ),
-                        const SizedBox(height: 4),
                         Text(
-                          'Tap + to start a new screening',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color:
-                                theme.colorScheme.onSurface.withOpacity(0.4),
+                          'ON THIS DEVICE',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: colors.onSurface.withValues(alpha: 0.44),
+                            letterSpacing: 0.7,
+                            fontWeight: FontWeight.w800,
                           ),
                         ),
                       ],
                     ),
-                  );
-                }
-
-                return ListView.separated(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: sessions.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 8),
-                  itemBuilder: (context, i) {
-                    final s = sessions[i];
-                    return Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.surface,
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                          color: theme.colorScheme.onSurface.withOpacity(0.08),
-                        ),
-                      ),
-                      child: Row(
+                    const SizedBox(height: 12),
+                  ]),
+                ),
+              ),
+              sessionsAsync.when(
+                loading: () => const SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+                error: (error, _) => SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: SoftCard(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          // Risk dot
-                          Container(
-                            width: 10,
-                            height: 10,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: _riskColor(s.riskLevel),
-                            ),
+                          const RoundIcon(icon: Icons.cloud_off_rounded),
+                          const SizedBox(height: 14),
+                          Text(
+                            'Unable to load screenings',
+                            style: theme.textTheme.titleMedium,
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  s.childName ?? 'Child (${s.childAgeMonths}m)',
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.w500),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  '${s.anganwadiId} · ${_formatDate(s.sessionDate)}',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: theme.colorScheme.onSurface
-                                        .withOpacity(0.5),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: _riskColor(s.riskLevel).withOpacity(0.12),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(
-                              s.riskLevel.name.toUpperCase(),
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: _riskColor(s.riskLevel),
-                              ),
-                            ),
-                          ),
-                          if (!s.syncedToCloud) ...[
-                            const SizedBox(width: 8),
-                            Icon(Icons.cloud_off,
-                                size: 14,
-                                color: theme.colorScheme.onSurface
-                                    .withOpacity(0.3)),
-                          ],
+                          const SizedBox(height: 6),
+                          Text('$error', textAlign: TextAlign.center),
                         ],
                       ),
+                    ),
+                  ),
+                ),
+                data: (sessions) {
+                  if (sessions.isEmpty) {
+                    return SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 4, 20, 120),
+                        child: SoftCard(
+                          color: colors.secondaryContainer.withValues(
+                            alpha: 0.58,
+                          ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              RoundIcon(
+                                icon: Icons.graphic_eq_rounded,
+                                size: 68,
+                                color: colors.secondary,
+                                iconColor: colors.onSecondary,
+                              ),
+                              const SizedBox(height: 18),
+                              Text(
+                                'Your screening list is ready',
+                                style: theme.textTheme.titleMedium,
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Start your first guided session when the child and parent are comfortable.',
+                                textAlign: TextAlign.center,
+                                style: theme.textTheme.bodyMedium,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
                     );
-                  },
-                );
-              },
-            ),
+                  }
+
+                  return SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 120),
+                    sliver: SliverList.separated(
+                      itemCount: sessions.length,
+                      itemBuilder: (context, index) => _SessionTile(
+                        riskLevel: sessions[index].riskLevel,
+                        childName: sessions[index].childName,
+                        ageMonths: sessions[index].childAgeMonths,
+                        anganwadiId: sessions[index].anganwadiId,
+                        sessionDate: sessions[index].sessionDate,
+                        synced: sessions[index].syncedToCloud,
+                      ),
+                      separatorBuilder: (_, _) => const SizedBox(height: 10),
+                    ),
+                  );
+                },
+              ),
+            ],
           ),
-        ],
+        ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
           ref.read(sessionProvider.notifier).reset();
           context.push('/child-profile');
         },
-        icon: const Icon(Icons.add),
-        label: const Text('New Screening'),
+        icon: const Icon(Icons.add_rounded),
+        label: const Text('New screening'),
+      ),
+    );
+  }
+}
+
+class _SyncCard extends ConsumerWidget {
+  final SyncState syncState;
+
+  const _SyncCard({required this.syncState});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    return SoftCard(
+      color: colors.primaryContainer.withValues(alpha: 0.72),
+      child: Row(
+        children: [
+          RoundIcon(
+            icon: Icons.cloud_upload_outlined,
+            color: colors.primary,
+            iconColor: colors.onPrimary,
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${syncState.pendingCount} record${syncState.pendingCount == 1 ? '' : 's'} ready to sync',
+                  style: theme.textTheme.titleSmall,
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  'Stored safely on this device',
+                  style: theme.textTheme.bodySmall,
+                ),
+              ],
+            ),
+          ),
+          TextButton(
+            onPressed: syncState.isSyncing
+                ? null
+                : () => ref.read(syncProvider.notifier).syncAll(),
+            child: syncState.isSyncing
+                ? const SizedBox.square(
+                    dimension: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Text('Sync'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SessionTile extends StatelessWidget {
+  final RiskLevel riskLevel;
+  final String? childName;
+  final int ageMonths;
+  final String anganwadiId;
+  final DateTime sessionDate;
+  final bool synced;
+
+  const _SessionTile({
+    required this.riskLevel,
+    required this.childName,
+    required this.ageMonths,
+    required this.anganwadiId,
+    required this.sessionDate,
+    required this.synced,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final riskColor = _riskColor(riskLevel);
+    final label = riskLevel.name.toUpperCase();
+    return SoftCard(
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        children: [
+          RoundIcon(
+            icon: riskLevel == RiskLevel.green
+                ? Icons.check_rounded
+                : riskLevel == RiskLevel.yellow
+                ? Icons.visibility_outlined
+                : Icons.priority_high_rounded,
+            size: 44,
+            color: riskColor.withValues(alpha: 0.13),
+            iconColor: riskColor,
+          ),
+          const SizedBox(width: 13),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  childName ?? 'Child, $ageMonths months',
+                  style: theme.textTheme.titleSmall,
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  '$anganwadiId  ·  ${_formatDate(sessionDate)}',
+                  style: theme.textTheme.bodySmall,
+                ),
+              ],
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                decoration: BoxDecoration(
+                  color: riskColor.withValues(alpha: 0.13),
+                  borderRadius: BorderRadius.circular(99),
+                ),
+                child: Text(
+                  label,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: riskColor,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Icon(
+                synced ? Icons.cloud_done_outlined : Icons.cloud_off_outlined,
+                size: 16,
+                color: colors.onSurface.withValues(alpha: 0.38),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
 
-  Color _riskColor(RiskLevel level) {
-    switch (level) {
+  Color _riskColor(RiskLevel risk) {
+    switch (risk) {
       case RiskLevel.red:
-        return const Color(0xFFC62828);
+        return const Color(0xFFB53A4A);
       case RiskLevel.yellow:
-        return const Color(0xFFF9A825);
+        return const Color(0xFFB98216);
       case RiskLevel.green:
-        return const Color(0xFF2E7D32);
+        return const Color(0xFF367E62);
     }
   }
 
   String _formatDate(DateTime date) {
-    final now = DateTime.now();
-    final diff = now.difference(date);
+    final diff = DateTime.now().difference(date);
     if (diff.inDays == 0) return 'Today';
     if (diff.inDays == 1) return 'Yesterday';
     return '${date.day}/${date.month}/${date.year}';

@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../data/models/child_profile.dart';
+
 import '../../../core/constants.dart';
+import '../../../data/models/child_profile.dart';
 import '../../providers/session_provider.dart';
+import '../../widgets/app_ui.dart';
 
 class ChildProfileScreen extends ConsumerStatefulWidget {
   const ChildProfileScreen({super.key});
 
   @override
-  ConsumerState<ChildProfileScreen> createState() =>
-      _ChildProfileScreenState();
+  ConsumerState<ChildProfileScreen> createState() => _ChildProfileScreenState();
 }
 
 class _ChildProfileScreenState extends ConsumerState<ChildProfileScreen> {
@@ -46,120 +47,173 @@ class _ChildProfileScreenState extends ConsumerState<ChildProfileScreen> {
 
   void _submit() {
     if (!_formKey.currentState!.validate()) return;
-
-    final profile = ChildProfile(
-      childName:
-          _nameController.text.trim().isEmpty ? null : _nameController.text.trim(),
-      childAgeMonths: _ageMonths,
-      anganwadiId: _anganwadiController.text.trim(),
-      districtCode: _districtCode,
-    );
-
-    ref.read(sessionProvider.notifier).setChildProfile(profile);
+    ref
+        .read(sessionProvider.notifier)
+        .setChildProfile(
+          ChildProfile(
+            childName: _nameController.text.trim().isEmpty
+                ? null
+                : _nameController.text.trim(),
+            childAgeMonths: _ageMonths,
+            anganwadiId: _anganwadiController.text.trim(),
+            districtCode: _districtCode,
+          ),
+        );
     context.push('/consent');
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-
+    final colors = theme.colorScheme;
     return Scaffold(
-      appBar: AppBar(title: const Text('Child Details')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+      appBar: AppBar(title: const Text('New screening')),
+      body: SafeArea(
+        top: false,
         child: Form(
           key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
             children: [
-              // Name (optional)
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Child Name (optional)',
-                  border: OutlineInputBorder(),
-                ),
+              const PageIntro(
+                eyebrow: 'Step 1 of 4',
+                title: 'A few child details.',
+                subtitle:
+                    'Only the information needed for this screening is collected.',
               ),
-              const SizedBox(height: 20),
-
-              // Age in months
-              Text('Age (months)', style: theme.textTheme.bodyMedium),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  IconButton.outlined(
-                    onPressed: _ageMonths > AppConstants.minAgeMonths
-                        ? () => setState(() => _ageMonths--)
-                        : null,
-                    icon: const Icon(Icons.remove),
-                  ),
-                  Expanded(
-                    child: Center(
-                      child: Text(
-                        '$_ageMonths',
-                        style: const TextStyle(
-                            fontSize: 32, fontWeight: FontWeight.bold),
+              const SizedBox(height: 24),
+              SoftCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Child profile', style: theme.textTheme.titleMedium),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _nameController,
+                      textCapitalization: TextCapitalization.words,
+                      decoration: const InputDecoration(
+                        labelText: 'Child name',
+                        hintText: 'Optional',
+                        prefixIcon: Icon(Icons.face_rounded),
                       ),
                     ),
-                  ),
-                  IconButton.outlined(
-                    onPressed: _ageMonths < AppConstants.maxAgeMonths
-                        ? () => setState(() => _ageMonths++)
-                        : null,
-                    icon: const Icon(Icons.add),
-                  ),
-                ],
-              ),
-              Slider(
-                value: _ageMonths.toDouble(),
-                min: AppConstants.minAgeMonths.toDouble(),
-                max: AppConstants.maxAgeMonths.toDouble(),
-                divisions:
-                    AppConstants.maxAgeMonths - AppConstants.minAgeMonths,
-                label: '$_ageMonths months',
-                onChanged: (v) => setState(() => _ageMonths = v.round()),
-              ),
-              const SizedBox(height: 20),
-
-              // Anganwadi ID
-              TextFormField(
-                controller: _anganwadiController,
-                decoration: const InputDecoration(
-                  labelText: 'Anganwadi ID',
-                  hintText: 'e.g. KL-IDK-042',
-                  border: OutlineInputBorder(),
+                    const SizedBox(height: 20),
+                    Text('Age in months', style: theme.textTheme.titleSmall),
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
+                      decoration: BoxDecoration(
+                        color: colors.primaryContainer.withValues(alpha: 0.56),
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      child: Column(
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              IconButton.filledTonal(
+                                tooltip: 'Decrease age',
+                                onPressed:
+                                    _ageMonths > AppConstants.minAgeMonths
+                                    ? () => setState(() => _ageMonths--)
+                                    : null,
+                                icon: const Icon(Icons.remove_rounded),
+                              ),
+                              Column(
+                                children: [
+                                  Text(
+                                    '$_ageMonths',
+                                    style: theme.textTheme.displaySmall
+                                        ?.copyWith(
+                                          color: colors.onPrimaryContainer,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                  ),
+                                  Text(
+                                    'months',
+                                    style: theme.textTheme.bodySmall,
+                                  ),
+                                ],
+                              ),
+                              IconButton.filledTonal(
+                                tooltip: 'Increase age',
+                                onPressed:
+                                    _ageMonths < AppConstants.maxAgeMonths
+                                    ? () => setState(() => _ageMonths++)
+                                    : null,
+                                icon: const Icon(Icons.add_rounded),
+                              ),
+                            ],
+                          ),
+                          Slider(
+                            value: _ageMonths.toDouble(),
+                            min: AppConstants.minAgeMonths.toDouble(),
+                            max: AppConstants.maxAgeMonths.toDouble(),
+                            divisions:
+                                AppConstants.maxAgeMonths -
+                                AppConstants.minAgeMonths,
+                            label: '$_ageMonths months',
+                            onChanged: (value) =>
+                                setState(() => _ageMonths = value.round()),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-                validator: (v) =>
-                    v == null || v.trim().isEmpty ? 'Required' : null,
               ),
-              const SizedBox(height: 20),
-
-              // District
-              DropdownButtonFormField<String>(
-                value: _districtCode,
-                decoration: const InputDecoration(
-                  labelText: 'District',
-                  border: OutlineInputBorder(),
+              const SizedBox(height: 14),
+              SoftCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Screening location',
+                      style: theme.textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _anganwadiController,
+                      textCapitalization: TextCapitalization.characters,
+                      decoration: const InputDecoration(
+                        labelText: 'Anganwadi ID',
+                        hintText: 'For example, KL-IDK-042',
+                        prefixIcon: Icon(Icons.home_work_outlined),
+                      ),
+                      validator: (value) =>
+                          value == null || value.trim().isEmpty
+                          ? 'Enter an Anganwadi ID'
+                          : null,
+                    ),
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<String>(
+                      initialValue: _districtCode,
+                      decoration: const InputDecoration(
+                        labelText: 'District',
+                        prefixIcon: Icon(Icons.location_on_outlined),
+                      ),
+                      items: _districts.entries
+                          .map(
+                            (entry) => DropdownMenuItem(
+                              value: entry.key,
+                              child: Text(entry.value),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (value) {
+                        if (value != null) {
+                          setState(() => _districtCode = value);
+                        }
+                      },
+                    ),
+                  ],
                 ),
-                items: _districts.entries
-                    .map((e) => DropdownMenuItem(
-                          value: e.key,
-                          child: Text(e.value),
-                        ))
-                    .toList(),
-                onChanged: (v) {
-                  if (v != null) setState(() => _districtCode = v);
-                },
               ),
-              const SizedBox(height: 32),
-
+              const SizedBox(height: 24),
               FilledButton.icon(
                 onPressed: _submit,
-                icon: const Icon(Icons.arrow_forward),
-                label: const Text('Continue to Consent'),
-                style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                ),
+                icon: const Icon(Icons.arrow_forward_rounded),
+                label: const Text('Continue to consent'),
               ),
             ],
           ),
