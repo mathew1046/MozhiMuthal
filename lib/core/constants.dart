@@ -26,7 +26,7 @@ class AppConstants {
 
   // ── Method channel ──
   static const String audioPipelineChannel = 'com.mozhimuthal/audio_pipeline';
-  static const String myChildEngineVersion = '0.4.0';
+  static const String myChildEngineVersion = '0.5.0';
   static const String questionnaireDisclaimer =
       'ഇത് രോഗനിർണ്ണയം അല്ല. ഒരു ആരോഗ്യപ്രവർത്തകന്റെ വിലയിരുത്തൽ ആവശ്യമാണ്.';
 

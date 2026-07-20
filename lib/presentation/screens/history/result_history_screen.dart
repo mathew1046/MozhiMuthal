@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../../data/models/biomarker_result.dart';
 import '../../../data/models/session_model.dart';
 import '../../../data/repositories/session_repository.dart';
@@ -62,30 +63,7 @@ class _HistoryItem extends StatelessWidget {
           session.riskLevel.name.toUpperCase(),
           style: TextStyle(color: color, fontWeight: FontWeight.bold),
         ),
-        onTap: () => showModalBottomSheet(
-          context: context,
-          builder: (_) => Padding(
-            padding: const EdgeInsets.all(24),
-            child: Wrap(
-              children: [
-                Text(
-                  'Screening result',
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-                const SizedBox(height: 16),
-                Text('Risk: ${session.riskLevel.name.toUpperCase()}'),
-                Text('VTTL: ${session.vttlMs.toStringAsFixed(0)} ms'),
-                Text('CVR: ${session.cvrRatio.toStringAsFixed(3)}'),
-                if (session.childAgeMonths >= 36)
-                  Text('PFV: ${session.pfvStd.toStringAsFixed(2)}'),
-                const SizedBox(height: 12),
-                Text(
-                  'Saved locally ${session.syncedToCloud ? 'and synced' : 'and waiting to sync'}.',
-                ),
-              ],
-            ),
-          ),
-        ),
+        onTap: () => context.push('/session-detail', extra: session),
       ),
     );
   }

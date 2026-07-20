@@ -133,78 +133,91 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   separatorBuilder: (_, __) => const SizedBox(height: 8),
                   itemBuilder: (context, i) {
                     final s = sessions[i];
-                    return Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.surface,
+                    return Material(
+                      color: theme.colorScheme.surface,
+                      borderRadius: BorderRadius.circular(10),
+                      child: InkWell(
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                          color: theme.colorScheme.onSurface.withOpacity(0.08),
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          // Risk dot
-                          Container(
-                            width: 10,
-                            height: 10,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: _riskColor(s.riskLevel),
+                        onTap: () => context.push('/session-detail', extra: s),
+                        child: Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: theme.colorScheme.onSurface.withOpacity(
+                                0.08,
+                              ),
                             ),
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  s.childName ?? 'Child (${s.childAgeMonths}m)',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w500,
+                          child: Row(
+                            children: [
+                              // Risk dot
+                              Container(
+                                width: 10,
+                                height: 10,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: _riskColor(s.riskLevel),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      s.childName ??
+                                          'Child (${s.childAgeMonths}m)',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      '${s.anganwadiId} · ${_formatDate(s.sessionDate)}',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: theme.colorScheme.onSurface
+                                            .withOpacity(0.5),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: _riskColor(
+                                    s.riskLevel,
+                                  ).withOpacity(0.12),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  s.riskLevel.name.toUpperCase(),
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: _riskColor(s.riskLevel),
                                   ),
                                 ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  '${s.anganwadiId} · ${_formatDate(s.sessionDate)}',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: theme.colorScheme.onSurface
-                                        .withOpacity(0.5),
-                                  ),
+                              ),
+                              const SizedBox(width: 4),
+                              const Icon(Icons.chevron_right),
+                              if (!s.syncedToCloud) ...[
+                                const SizedBox(width: 4),
+                                Icon(
+                                  Icons.cloud_off,
+                                  size: 14,
+                                  color: theme.colorScheme.onSurface
+                                      .withOpacity(0.3),
                                 ),
                               ],
-                            ),
+                            ],
                           ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: _riskColor(s.riskLevel).withOpacity(0.12),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(
-                              s.riskLevel.name.toUpperCase(),
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: _riskColor(s.riskLevel),
-                              ),
-                            ),
-                          ),
-                          if (!s.syncedToCloud) ...[
-                            const SizedBox(width: 8),
-                            Icon(
-                              Icons.cloud_off,
-                              size: 14,
-                              color: theme.colorScheme.onSurface.withOpacity(
-                                0.3,
-                              ),
-                            ),
-                          ],
-                        ],
+                        ),
                       ),
                     );
                   },

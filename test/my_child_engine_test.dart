@@ -50,4 +50,33 @@ void main() {
     expect(result.questions.first.detail.appliedRule, isNotEmpty);
     expect(result.toJson()['questions'], isNotEmpty);
   });
+
+  test(
+    'M-CHAT-R includes all Malayalam items and reverse-scores items 2, 5, and 12',
+    () {
+      final questions = MyChildEngine.forAge(24);
+      final mchat = questions.where((q) => q.isMchatQuestion).toList();
+      expect(mchat, hasLength(20));
+      expect(mchat.every((q) => q.malayalam != null), isTrue);
+
+      final answers = {
+        for (final q in questions)
+          q.id: q.isMchatQuestion
+              ? (q.mchatConcernWhenYes
+                    ? MyChildAnswer.notYet
+                    : MyChildAnswer.achieved)
+              : MyChildAnswer.achieved,
+        'mchat_01': MyChildAnswer.notYet,
+        'mchat_03': MyChildAnswer.notYet,
+        'mchat_04': MyChildAnswer.notYet,
+      };
+      final result = MyChildEngine.evaluateDetailed(
+        ageMonths: 24,
+        answers: answers,
+      );
+
+      expect(result.domains['MCHAT']?.warningCount, 3);
+      expect(result.domains['MCHAT']?.status, 'low_concern');
+    },
+  );
 }

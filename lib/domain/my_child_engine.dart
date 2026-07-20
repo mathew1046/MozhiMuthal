@@ -21,6 +21,7 @@ class MonitoringQuestion {
   final int minAge, maxAge, normativeAgeMonths;
   final String evidenceStrength, weight, escalationRule, actionProfile;
   final List<String> probes;
+  final bool isMchatQuestion, mchatConcernWhenYes;
   final String? subtext,
       malayalam,
       malayalamSubtext,
@@ -39,6 +40,8 @@ class MonitoringQuestion {
     required this.escalationRule,
     required this.actionProfile,
     this.probes = const [],
+    this.isMchatQuestion = false,
+    this.mchatConcernWhenYes = false,
     this.subtext,
     this.malayalam,
     this.malayalamSubtext,
@@ -63,6 +66,8 @@ class MonitoringQuestion {
     'escalation_rule': escalationRule,
     'action_profile': actionProfile,
     'probes': probes,
+    'screening_tool': isMchatQuestion ? 'M-CHAT-R' : 'MyChild',
+    if (isMchatQuestion) 'concern_when': mchatConcernWhenYes ? 'yes' : 'no',
     'citation_source': citationSource,
     'citation_reference': citationReference,
   };
@@ -185,7 +190,7 @@ class MyChildEvaluation {
   });
   Map<String, dynamic> toJson() => {
     'engine_version': MyChildEngine.engineVersion,
-    'ruleset': 'hypothesis-v2-cdc2022-aligned',
+    'ruleset': 'hypothesis-v2-cdc2022-aligned+mchat-r',
     'state': state.name,
     'tier': tier,
     'global_level': globalLevel,
@@ -1818,6 +1823,430 @@ class MyChildEngine {
       citationSource: "CDC 2022 Milestones by 30 Months / 3 Years",
       citationReference: "Zubler et al., Pediatrics 2022;149(3):e2021052138",
     ),
+    // M-CHAT-R caregiver screen. These items are shown only from 16–30 months
+    // and are scored separately from the age-based developmental milestones.
+    MonitoringQuestion(
+      id: "mchat_01",
+      prompt:
+          "If you point at something across the room, does your child look at it?",
+      domain: "M-CHAT-R",
+      tags: ['MCHAT'],
+      minAge: 16,
+      maxAge: 30,
+      normativeAgeMonths: 16,
+      evidenceStrength: "M-CHAT-R caregiver screen",
+      weight: "MCHAT",
+      escalationRule: "MCHAT",
+      actionProfile: "AP-MCHAT",
+      isMchatQuestion: true,
+      subtext:
+          "For example, if you point at a toy or an animal, does your child look at the toy or animal?",
+      malayalam:
+          "മുറിക്കപ്പുറത്തുള്ള എന്തെങ്കിലും നിങ്ങൾ വിരൽചൂണ്ടിക്കാണിച്ചാൽ കുട്ടി അതിലേക്ക് നോക്കുന്നുണ്ടോ?",
+      malayalamSubtext:
+          "ഉദാഹരണത്തിന്, ഒരു കളിപ്പാട്ടമോ മൃഗമോ ചൂണ്ടിക്കാണിച്ചാൽ കുട്ടി അതിലേക്കോ അതിനെക്കോ നോക്കുന്നുണ്ടോ?",
+      citationSource: "M-CHAT-R/F",
+      citationReference: "Robins et al., Pediatrics 2014;133(1):37-45",
+    ),
+    MonitoringQuestion(
+      id: "mchat_02",
+      prompt: "Have you ever wondered if your child might be deaf?",
+      domain: "M-CHAT-R",
+      tags: ['MCHAT'],
+      minAge: 16,
+      maxAge: 30,
+      normativeAgeMonths: 16,
+      evidenceStrength: "M-CHAT-R caregiver screen",
+      weight: "MCHAT",
+      escalationRule: "MCHAT",
+      actionProfile: "AP-MCHAT",
+      isMchatQuestion: true,
+      mchatConcernWhenYes: true,
+      malayalam:
+          "നിങ്ങളുടെ കുട്ടിക്ക് കേൾവിക്കുറവുണ്ടാകാമോ എന്ന് നിങ്ങൾക്ക് എപ്പോഴെങ്കിലും സംശയം തോന്നിയിട്ടുണ്ടോ?",
+      citationSource: "M-CHAT-R/F",
+      citationReference: "Robins et al., Pediatrics 2014;133(1):37-45",
+    ),
+    MonitoringQuestion(
+      id: "mchat_03",
+      prompt: "Does your child play pretend or make-believe?",
+      domain: "M-CHAT-R",
+      tags: ['MCHAT'],
+      minAge: 16,
+      maxAge: 30,
+      normativeAgeMonths: 16,
+      evidenceStrength: "M-CHAT-R caregiver screen",
+      weight: "MCHAT",
+      escalationRule: "MCHAT",
+      actionProfile: "AP-MCHAT",
+      isMchatQuestion: true,
+      subtext:
+          "For example, pretend to drink from an empty cup, talk on a phone, or feed a doll or stuffed animal.",
+      malayalam:
+          "കുട്ടി നടിക്കുന്നതോ സാങ്കൽപ്പികമായതോ ആയ കളികൾ കളിക്കുന്നുണ്ടോ?",
+      malayalamSubtext:
+          "ഉദാഹരണത്തിന്, ഒഴിഞ്ഞ കപ്പിൽ നിന്ന് കുടിക്കുന്നതായി നടിക്കുക, ഫോണിൽ സംസാരിക്കുന്നതായി നടിക്കുക, അല്ലെങ്കിൽ പാവയ്ക്കോ കളിപ്പാട്ട മൃഗത്തിനോ ഭക്ഷണം കൊടുക്കുന്നതായി നടിക്കുക.",
+      citationSource: "M-CHAT-R/F",
+      citationReference: "Robins et al., Pediatrics 2014;133(1):37-45",
+    ),
+    MonitoringQuestion(
+      id: "mchat_04",
+      prompt: "Does your child like climbing on things?",
+      domain: "M-CHAT-R",
+      tags: ['MCHAT'],
+      minAge: 16,
+      maxAge: 30,
+      normativeAgeMonths: 16,
+      evidenceStrength: "M-CHAT-R caregiver screen",
+      weight: "MCHAT",
+      escalationRule: "MCHAT",
+      actionProfile: "AP-MCHAT",
+      isMchatQuestion: true,
+      subtext: "For example, furniture, playground equipment, or stairs.",
+      malayalam: "കുട്ടിക്ക് വസ്തുക്കളിൽ കയറാൻ ഇഷ്ടമാണോ?",
+      malayalamSubtext:
+          "ഉദാഹരണത്തിന്, ഫർണിച്ചറിലോ കളിസ്ഥലത്തെ ഉപകരണങ്ങളിലോ പടികളിലോ കയറുന്നത്.",
+      citationSource: "M-CHAT-R/F",
+      citationReference: "Robins et al., Pediatrics 2014;133(1):37-45",
+    ),
+    MonitoringQuestion(
+      id: "mchat_05",
+      prompt:
+          "Does your child make unusual finger movements near his or her eyes?",
+      domain: "M-CHAT-R",
+      tags: ['MCHAT'],
+      minAge: 16,
+      maxAge: 30,
+      normativeAgeMonths: 16,
+      evidenceStrength: "M-CHAT-R caregiver screen",
+      weight: "MCHAT",
+      escalationRule: "MCHAT",
+      actionProfile: "AP-MCHAT",
+      isMchatQuestion: true,
+      mchatConcernWhenYes: true,
+      subtext:
+          "For example, does your child wiggle his or her fingers close to his or her eyes?",
+      malayalam:
+          "കുട്ടി കണ്ണുകൾക്ക് സമീപം അസാധാരണമായ വിരൽചലനങ്ങൾ കാണിക്കുന്നുണ്ടോ?",
+      malayalamSubtext:
+          "ഉദാഹരണത്തിന്, കണ്ണുകൾക്ക് വളരെ അടുത്ത് വിരലുകൾ ഇളക്കുകയോ വിറപ്പിക്കുകയോ ചെയ്യുന്നുണ്ടോ?",
+      citationSource: "M-CHAT-R/F",
+      citationReference: "Robins et al., Pediatrics 2014;133(1):37-45",
+    ),
+    MonitoringQuestion(
+      id: "mchat_06",
+      prompt:
+          "Does your child point with one finger to ask for something or to get help?",
+      domain: "M-CHAT-R",
+      tags: ['MCHAT'],
+      minAge: 16,
+      maxAge: 30,
+      normativeAgeMonths: 16,
+      evidenceStrength: "M-CHAT-R caregiver screen",
+      weight: "MCHAT",
+      escalationRule: "MCHAT",
+      actionProfile: "AP-MCHAT",
+      isMchatQuestion: true,
+      subtext: "For example, pointing to a snack or toy that is out of reach.",
+      malayalam:
+          "എന്തെങ്കിലും ചോദിക്കാനോ സഹായം തേടാനോ കുട്ടി ഒരു വിരൽ കൊണ്ട് ചൂണ്ടിക്കാണിക്കുന്നുണ്ടോ?",
+      malayalamSubtext:
+          "ഉദാഹരണത്തിന്, എത്തിപ്പിടിക്കാൻ കഴിയാത്ത ലഘുഭക്ഷണമോ കളിപ്പാട്ടമോ ചൂണ്ടിക്കാണിക്കുന്നത്.",
+      citationSource: "M-CHAT-R/F",
+      citationReference: "Robins et al., Pediatrics 2014;133(1):37-45",
+    ),
+    MonitoringQuestion(
+      id: "mchat_07",
+      prompt:
+          "Does your child point with one finger to show you something interesting?",
+      domain: "M-CHAT-R",
+      tags: ['MCHAT'],
+      minAge: 16,
+      maxAge: 30,
+      normativeAgeMonths: 16,
+      evidenceStrength: "M-CHAT-R caregiver screen",
+      weight: "MCHAT",
+      escalationRule: "MCHAT",
+      actionProfile: "AP-MCHAT",
+      isMchatQuestion: true,
+      subtext:
+          "For example, pointing to an airplane in the sky or a big truck in the road.",
+      malayalam:
+          "രസകരമായ എന്തെങ്കിലും നിങ്ങൾക്ക് കാണിച്ചുതരാൻ കുട്ടി ഒരു വിരൽ കൊണ്ട് ചൂണ്ടിക്കാണിക്കുന്നുണ്ടോ?",
+      malayalamSubtext:
+          "ഉദാഹരണത്തിന്, ആകാശത്തിലെ വിമാനമോ റോഡിലെ വലിയ ലോറിയോ ചൂണ്ടിക്കാണിക്കുന്നത്.",
+      citationSource: "M-CHAT-R/F",
+      citationReference: "Robins et al., Pediatrics 2014;133(1):37-45",
+    ),
+    MonitoringQuestion(
+      id: "mchat_08",
+      prompt: "Is your child interested in other children?",
+      domain: "M-CHAT-R",
+      tags: ['MCHAT'],
+      minAge: 16,
+      maxAge: 30,
+      normativeAgeMonths: 16,
+      evidenceStrength: "M-CHAT-R caregiver screen",
+      weight: "MCHAT",
+      escalationRule: "MCHAT",
+      actionProfile: "AP-MCHAT",
+      isMchatQuestion: true,
+      subtext:
+          "For example, does your child watch other children, smile at them, or go to them?",
+      malayalam: "കുട്ടിക്ക് മറ്റ് കുട്ടികളിൽ താൽപര്യമുണ്ടോ?",
+      malayalamSubtext:
+          "ഉദാഹരണത്തിന്, മറ്റ് കുട്ടികളെ നോക്കുക, അവരെ നോക്കി പുഞ്ചിരിക്കുക, അല്ലെങ്കിൽ അവരുടെ അടുത്തേക്ക് പോകുക.",
+      citationSource: "M-CHAT-R/F",
+      citationReference: "Robins et al., Pediatrics 2014;133(1):37-45",
+    ),
+    MonitoringQuestion(
+      id: "mchat_09",
+      prompt:
+          "Does your child show you things by bringing them to you or holding them up for you to see—not to get help, but just to share?",
+      domain: "M-CHAT-R",
+      tags: ['MCHAT'],
+      minAge: 16,
+      maxAge: 30,
+      normativeAgeMonths: 16,
+      evidenceStrength: "M-CHAT-R caregiver screen",
+      weight: "MCHAT",
+      escalationRule: "MCHAT",
+      actionProfile: "AP-MCHAT",
+      isMchatQuestion: true,
+      subtext:
+          "For example, showing you a flower, a stuffed animal, or a toy truck.",
+      malayalam:
+          "സഹായം തേടാനല്ലാതെ, പങ്കുവെക്കാനായി മാത്രം, കുട്ടി വസ്തുക്കൾ കൊണ്ടുവന്ന് കാണിക്കുകയോ ഉയർത്തിപ്പിടിച്ച് കാണിക്കുകയോ ചെയ്യുന്നുണ്ടോ?",
+      malayalamSubtext:
+          "ഉദാഹരണത്തിന്, ഒരു പൂവോ കളിപ്പാട്ട മൃഗമോ കളിപ്പാട്ട ലോറിയോ കാണിക്കുന്നത്.",
+      citationSource: "M-CHAT-R/F",
+      citationReference: "Robins et al., Pediatrics 2014;133(1):37-45",
+    ),
+    MonitoringQuestion(
+      id: "mchat_10",
+      prompt: "Does your child respond when you call his or her name?",
+      domain: "M-CHAT-R",
+      tags: ['MCHAT'],
+      minAge: 16,
+      maxAge: 30,
+      normativeAgeMonths: 16,
+      evidenceStrength: "M-CHAT-R caregiver screen",
+      weight: "MCHAT",
+      escalationRule: "MCHAT",
+      actionProfile: "AP-MCHAT",
+      isMchatQuestion: true,
+      subtext:
+          "For example, does your child look up, talk or babble, or stop what he or she is doing when called?",
+      malayalam: "കുട്ടിയുടെ പേര് വിളിക്കുമ്പോൾ കുട്ടി പ്രതികരിക്കുന്നുണ്ടോ?",
+      malayalamSubtext:
+          "ഉദാഹരണത്തിന്, മുകളിലേക്ക് നോക്കുക, സംസാരിക്കുകയോ ശബ്ദമുണ്ടാക്കുകയോ ചെയ്യുക, അല്ലെങ്കിൽ ചെയ്തുകൊണ്ടിരുന്നത് നിർത്തുക.",
+      citationSource: "M-CHAT-R/F",
+      citationReference: "Robins et al., Pediatrics 2014;133(1):37-45",
+    ),
+    MonitoringQuestion(
+      id: "mchat_11",
+      prompt: "When you smile at your child, does he or she smile back at you?",
+      domain: "M-CHAT-R",
+      tags: ['MCHAT'],
+      minAge: 16,
+      maxAge: 30,
+      normativeAgeMonths: 16,
+      evidenceStrength: "M-CHAT-R caregiver screen",
+      weight: "MCHAT",
+      escalationRule: "MCHAT",
+      actionProfile: "AP-MCHAT",
+      isMchatQuestion: true,
+      malayalam:
+          "നിങ്ങൾ കുട്ടിയെ നോക്കി പുഞ്ചിരിക്കുമ്പോൾ കുട്ടി തിരികെ പുഞ്ചിരിക്കുന്നുണ്ടോ?",
+      citationSource: "M-CHAT-R/F",
+      citationReference: "Robins et al., Pediatrics 2014;133(1):37-45",
+    ),
+    MonitoringQuestion(
+      id: "mchat_12",
+      prompt: "Does your child get upset by everyday noises?",
+      domain: "M-CHAT-R",
+      tags: ['MCHAT'],
+      minAge: 16,
+      maxAge: 30,
+      normativeAgeMonths: 16,
+      evidenceStrength: "M-CHAT-R caregiver screen",
+      weight: "MCHAT",
+      escalationRule: "MCHAT",
+      actionProfile: "AP-MCHAT",
+      isMchatQuestion: true,
+      mchatConcernWhenYes: true,
+      subtext:
+          "For example, does your child scream or cry to noise such as a vacuum cleaner or loud music?",
+      malayalam: "ദൈനംദിന ശബ്ദങ്ങൾ കേൾക്കുമ്പോൾ കുട്ടി അസ്വസ്ഥനാകുന്നുണ്ടോ?",
+      malayalamSubtext:
+          "ഉദാഹരണത്തിന്, വാക്വം ക്ലീനറിന്റെയോ ഉച്ചത്തിലുള്ള സംഗീതത്തിന്റെയോ ശബ്ദം കേട്ട് കുട്ടി നിലവിളിക്കുകയോ കരയുകയോ ചെയ്യുന്നുണ്ടോ?",
+      citationSource: "M-CHAT-R/F",
+      citationReference: "Robins et al., Pediatrics 2014;133(1):37-45",
+    ),
+    MonitoringQuestion(
+      id: "mchat_13",
+      prompt: "Does your child walk?",
+      domain: "M-CHAT-R",
+      tags: ['MCHAT'],
+      minAge: 16,
+      maxAge: 30,
+      normativeAgeMonths: 16,
+      evidenceStrength: "M-CHAT-R caregiver screen",
+      weight: "MCHAT",
+      escalationRule: "MCHAT",
+      actionProfile: "AP-MCHAT",
+      isMchatQuestion: true,
+      malayalam: "കുട്ടി നടക്കുന്നുണ്ടോ?",
+      citationSource: "M-CHAT-R/F",
+      citationReference: "Robins et al., Pediatrics 2014;133(1):37-45",
+    ),
+    MonitoringQuestion(
+      id: "mchat_14",
+      prompt:
+          "Does your child look you in the eye when you are talking to him or her, playing with him or her, or dressing him or her?",
+      domain: "M-CHAT-R",
+      tags: ['MCHAT'],
+      minAge: 16,
+      maxAge: 30,
+      normativeAgeMonths: 16,
+      evidenceStrength: "M-CHAT-R caregiver screen",
+      weight: "MCHAT",
+      escalationRule: "MCHAT",
+      actionProfile: "AP-MCHAT",
+      isMchatQuestion: true,
+      malayalam:
+          "നിങ്ങൾ കുട്ടിയോട് സംസാരിക്കുമ്പോഴോ കളിക്കുമ്പോഴോ വസ്ത്രം ധരിപ്പിക്കുമ്പോഴോ കുട്ടി നിങ്ങളുടെ കണ്ണുകളിലേക്ക് നോക്കുന്നുണ്ടോ?",
+      citationSource: "M-CHAT-R/F",
+      citationReference: "Robins et al., Pediatrics 2014;133(1):37-45",
+    ),
+    MonitoringQuestion(
+      id: "mchat_15",
+      prompt: "Does your child try to copy what you do?",
+      domain: "M-CHAT-R",
+      tags: ['MCHAT'],
+      minAge: 16,
+      maxAge: 30,
+      normativeAgeMonths: 16,
+      evidenceStrength: "M-CHAT-R caregiver screen",
+      weight: "MCHAT",
+      escalationRule: "MCHAT",
+      actionProfile: "AP-MCHAT",
+      isMchatQuestion: true,
+      subtext:
+          "For example, wave bye-bye, clap, or make a funny noise when you do.",
+      malayalam: "നിങ്ങൾ ചെയ്യുന്നത് അനുകരിക്കാൻ കുട്ടി ശ്രമിക്കുന്നുണ്ടോ?",
+      malayalamSubtext:
+          "ഉദാഹരണത്തിന്, നിങ്ങൾ ചെയ്യുമ്പോൾ കൈവീശുക, കൈയടിക്കുക, അല്ലെങ്കിൽ രസകരമായ ശബ്ദം ഉണ്ടാക്കുക.",
+      citationSource: "M-CHAT-R/F",
+      citationReference: "Robins et al., Pediatrics 2014;133(1):37-45",
+    ),
+    MonitoringQuestion(
+      id: "mchat_16",
+      prompt:
+          "If you turn your head to look at something, does your child look around to see what you are looking at?",
+      domain: "M-CHAT-R",
+      tags: ['MCHAT'],
+      minAge: 16,
+      maxAge: 30,
+      normativeAgeMonths: 16,
+      evidenceStrength: "M-CHAT-R caregiver screen",
+      weight: "MCHAT",
+      escalationRule: "MCHAT",
+      actionProfile: "AP-MCHAT",
+      isMchatQuestion: true,
+      malayalam:
+          "നിങ്ങൾ എന്തെങ്കിലും കാണാൻ തല തിരിക്കുമ്പോൾ, നിങ്ങൾ എന്താണ് നോക്കുന്നതെന്ന് കാണാൻ കുട്ടി ചുറ്റും നോക്കുന്നുണ്ടോ?",
+      citationSource: "M-CHAT-R/F",
+      citationReference: "Robins et al., Pediatrics 2014;133(1):37-45",
+    ),
+    MonitoringQuestion(
+      id: "mchat_17",
+      prompt: "Does your child try to get you to watch him or her?",
+      domain: "M-CHAT-R",
+      tags: ['MCHAT'],
+      minAge: 16,
+      maxAge: 30,
+      normativeAgeMonths: 16,
+      evidenceStrength: "M-CHAT-R caregiver screen",
+      weight: "MCHAT",
+      escalationRule: "MCHAT",
+      actionProfile: "AP-MCHAT",
+      isMchatQuestion: true,
+      subtext:
+          "For example, does your child look at you for praise, or say 'look' or 'watch me'?",
+      malayalam:
+          "തന്നെ നോക്കാൻ കുട്ടി നിങ്ങളെ പ്രേരിപ്പിക്കാൻ ശ്രമിക്കുന്നുണ്ടോ?",
+      malayalamSubtext:
+          "ഉദാഹരണത്തിന്, പ്രശംസയ്ക്കായി നിങ്ങളെ നോക്കുക, അല്ലെങ്കിൽ “നോക്കൂ”, “എന്നെ നോക്കൂ” എന്ന് പറയുക.",
+      citationSource: "M-CHAT-R/F",
+      citationReference: "Robins et al., Pediatrics 2014;133(1):37-45",
+    ),
+    MonitoringQuestion(
+      id: "mchat_18",
+      prompt:
+          "Does your child understand when you tell him or her to do something?",
+      domain: "M-CHAT-R",
+      tags: ['MCHAT'],
+      minAge: 16,
+      maxAge: 30,
+      normativeAgeMonths: 16,
+      evidenceStrength: "M-CHAT-R caregiver screen",
+      weight: "MCHAT",
+      escalationRule: "MCHAT",
+      actionProfile: "AP-MCHAT",
+      isMchatQuestion: true,
+      subtext:
+          "For example, if you do not point, can your child understand 'put the book on the chair' or 'bring me the blanket'?",
+      malayalam:
+          "ഒരു കാര്യം ചെയ്യാൻ പറയുമ്പോൾ കുട്ടിക്ക് അത് മനസ്സിലാകുന്നുണ്ടോ?",
+      malayalamSubtext:
+          "ഉദാഹരണത്തിന്, വിരൽചൂണ്ടാതെ “പുസ്തകം കസേരയിൽ വയ്ക്കൂ” അല്ലെങ്കിൽ “പുതപ്പ് കൊണ്ടുവരൂ” എന്ന് പറഞ്ഞാൽ കുട്ടിക്ക് മനസ്സിലാകുന്നുണ്ടോ?",
+      citationSource: "M-CHAT-R/F",
+      citationReference: "Robins et al., Pediatrics 2014;133(1):37-45",
+    ),
+    MonitoringQuestion(
+      id: "mchat_19",
+      prompt:
+          "If something new happens, does your child look at your face to see how you feel about it?",
+      domain: "M-CHAT-R",
+      tags: ['MCHAT'],
+      minAge: 16,
+      maxAge: 30,
+      normativeAgeMonths: 16,
+      evidenceStrength: "M-CHAT-R caregiver screen",
+      weight: "MCHAT",
+      escalationRule: "MCHAT",
+      actionProfile: "AP-MCHAT",
+      isMchatQuestion: true,
+      subtext:
+          "For example, if your child hears a strange or funny noise, or sees a new toy, will they look at your face?",
+      malayalam:
+          "പുതിയതായി എന്തെങ്കിലും സംഭവിക്കുമ്പോൾ, അതിനെക്കുറിച്ച് നിങ്ങൾക്ക് എങ്ങനെ തോന്നുന്നു എന്ന് അറിയാൻ കുട്ടി നിങ്ങളുടെ മുഖത്തേക്ക് നോക്കുന്നുണ്ടോ?",
+      malayalamSubtext:
+          "ഉദാഹരണത്തിന്, വിചിത്രമോ രസകരമോ ആയ ശബ്ദം കേൾക്കുമ്പോഴോ പുതിയ കളിപ്പാട്ടം കാണുമ്പോഴോ കുട്ടി നിങ്ങളുടെ മുഖത്തേക്ക് നോക്കുന്നുണ്ടോ?",
+      citationSource: "M-CHAT-R/F",
+      citationReference: "Robins et al., Pediatrics 2014;133(1):37-45",
+    ),
+    MonitoringQuestion(
+      id: "mchat_20",
+      prompt: "Does your child like movement activities?",
+      domain: "M-CHAT-R",
+      tags: ['MCHAT'],
+      minAge: 16,
+      maxAge: 30,
+      normativeAgeMonths: 16,
+      evidenceStrength: "M-CHAT-R caregiver screen",
+      weight: "MCHAT",
+      escalationRule: "MCHAT",
+      actionProfile: "AP-MCHAT",
+      isMchatQuestion: true,
+      subtext: "For example, being swung or bounced on your knee.",
+      malayalam: "ചലനമുള്ള പ്രവർത്തനങ്ങൾ കുട്ടിക്ക് ഇഷ്ടമാണോ?",
+      malayalamSubtext:
+          "ഉദാഹരണത്തിന്, ആട്ടുക അല്ലെങ്കിൽ മടിയിലിരുത്തി കുലുക്കുക.",
+      citationSource: "M-CHAT-R/F",
+      citationReference: "Robins et al., Pediatrics 2014;133(1):37-45",
+    ),
   ];
   static const _domainNames = {
     'GM': 'Gross Motor',
@@ -1829,6 +2258,7 @@ class MyChildEngine {
     'SH': 'Self-Help / Adaptive',
     'VH': 'Vision / Hearing',
     'RF': 'Red Flags',
+    'MCHAT': 'M-CHAT-R',
   };
   static const _probeMalayalam = {
     'P1': 'കുട്ടിക്ക് ഇത് ചെയ്യാൻ അവസരം ലഭിച്ചിട്ടുണ്ടോ?',
@@ -2029,6 +2459,14 @@ class MyChildEngine {
   ) {
     if (answer == null || answer == MyChildAnswer.skipped)
       return MyChildSeverity.reminder;
+    if (q.isMchatQuestion) {
+      if (answer == MyChildAnswer.unsure) {
+        return MyChildSeverity.watch;
+      }
+      final answeredYes = answer == MyChildAnswer.achieved;
+      final isConcern = q.mchatConcernWhenYes ? answeredYes : !answeredYes;
+      return isConcern ? MyChildSeverity.warning : MyChildSeverity.normal;
+    }
     if (answer == MyChildAnswer.achieved) return MyChildSeverity.normal;
     if (answer == MyChildAnswer.unsure) return MyChildSeverity.watch;
     if (q.isUniversalRedFlag) return MyChildSeverity.flag;
@@ -2061,6 +2499,7 @@ class MyChildEngine {
       'SH',
       'VH',
       'RF',
+      'MCHAT',
     ]) {
       final domainResults =
           results.where((r) => r.question.tags.contains(tag)).toList()..sort(
@@ -2069,6 +2508,49 @@ class MyChildEngine {
             ),
           );
       if (domainResults.isEmpty) continue;
+      if (tag == 'MCHAT') {
+        final concerns = domainResults
+            .where((r) => r.severity == MyChildSeverity.warning)
+            .toList();
+        final unsure = domainResults
+            .where((r) => r.severity == MyChildSeverity.watch)
+            .length;
+        final answered = domainResults
+            .where((r) => r.severity != MyChildSeverity.reminder)
+            .length;
+        final score = concerns.length;
+        final status = score >= 8
+            ? 'high_concern'
+            : score >= 3
+            ? 'low_concern'
+            : unsure > 0
+            ? 'insufficient_evidence'
+            : 'normal';
+        final explanation = score >= 8
+            ? 'M-CHAT-R has $score responses of concern. This is a high-risk result and needs prompt clinical referral.'
+            : score >= 3
+            ? 'M-CHAT-R has $score responses of concern. Complete the M-CHAT-R Follow-Up interview before interpreting this as a positive screen.'
+            : unsure > 0
+            ? 'M-CHAT-R has $unsure unsure response(s). Record a Yes or No answer for every item before interpreting the screen.'
+            : 'M-CHAT-R has $score responses of concern; routine re-screening is appropriate.';
+        out[tag] = MyChildDomainAssessment(
+          domainTag: tag,
+          domain: _domainNames[tag]!,
+          status: status,
+          explanation: explanation,
+          confidence: answered == domainResults.length ? 'high' : 'low',
+          flagCount: score >= 8 ? score : 0,
+          warningCount: score < 8 ? score : 0,
+          precautionCount: 0,
+          streakMissed: 0,
+          questionCount: domainResults.length,
+          totalWeightedPoints: score.toDouble(),
+          triggeringMilestones: concerns
+              .map((r) => r.question.malayalam ?? r.question.prompt)
+              .toList(),
+        );
+        continue;
+      }
       var flag = 0,
           warning = 0,
           precaution = 0,
@@ -2164,6 +2646,17 @@ class MyChildEngine {
     Map<String, MyChildDomainAssessment> domains,
   ) {
     final actions = <String>[];
+    final mchat = domains['MCHAT'];
+    if (mchat?.status == 'high_concern') {
+      actions.add(
+        'M-CHAT-R high-risk score: discuss prompt referral with a doctor or DEIC clinician.',
+      );
+    }
+    if (mchat?.status == 'low_concern') {
+      actions.add(
+        'M-CHAT-R score is 3–7: complete the official Follow-Up interview before making a referral decision.',
+      );
+    }
     if (domains.values.any((d) => d.status == 'high_concern'))
       actions.add(
         'Discuss the flagged developmental area with a doctor or DEIC clinician soon.',

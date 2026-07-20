@@ -60,6 +60,19 @@ class _QuestionnaireScreenState extends ConsumerState<QuestionnaireScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
+                                if (q.isMchatQuestion &&
+                                    (index == 0 ||
+                                        !questions[index - 1]
+                                            .isMchatQuestion)) ...[
+                                  const Text(
+                                    'M-CHAT-R (16–30 months)',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.teal,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                ],
                                 Text(
                                   q.malayalam ?? q.prompt,
                                   style: const TextStyle(
@@ -97,20 +110,31 @@ class _QuestionnaireScreenState extends ConsumerState<QuestionnaireScreen> {
                                 const SizedBox(height: 12),
                                 SegmentedButton<MyChildAnswer>(
                                   emptySelectionAllowed: true,
-                                  segments: const [
-                                    ButtonSegment(
-                                      value: MyChildAnswer.achieved,
-                                      label: Text('Achieved'),
-                                    ),
-                                    ButtonSegment(
-                                      value: MyChildAnswer.notYet,
-                                      label: Text('Not yet'),
-                                    ),
-                                    ButtonSegment(
-                                      value: MyChildAnswer.unsure,
-                                      label: Text('Unsure'),
-                                    ),
-                                  ],
+                                  segments: q.isMchatQuestion
+                                      ? const [
+                                          ButtonSegment(
+                                            value: MyChildAnswer.achieved,
+                                            label: Text('Yes'),
+                                          ),
+                                          ButtonSegment(
+                                            value: MyChildAnswer.notYet,
+                                            label: Text('No'),
+                                          ),
+                                        ]
+                                      : const [
+                                          ButtonSegment(
+                                            value: MyChildAnswer.achieved,
+                                            label: Text('Achieved'),
+                                          ),
+                                          ButtonSegment(
+                                            value: MyChildAnswer.notYet,
+                                            label: Text('Not yet'),
+                                          ),
+                                          ButtonSegment(
+                                            value: MyChildAnswer.unsure,
+                                            label: Text('Unsure'),
+                                          ),
+                                        ],
                                   selected: _answers.containsKey(q.id)
                                       ? {_answers[q.id]!}
                                       : const {},

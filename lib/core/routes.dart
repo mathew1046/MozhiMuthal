@@ -9,7 +9,9 @@ import '../presentation/screens/result/result_screen.dart';
 import '../presentation/screens/referral/referral_screen.dart';
 import '../presentation/screens/settings/settings_screen.dart';
 import '../presentation/screens/history/result_history_screen.dart';
+import '../presentation/screens/history/session_detail_screen.dart';
 import '../presentation/screens/questionnaire/questionnaire_screen.dart';
+import '../data/models/session_model.dart';
 
 final goRouter = GoRouter(
   initialLocation: '/',
@@ -47,6 +49,16 @@ final goRouter = GoRouter(
     GoRoute(
       path: '/history',
       builder: (context, state) => const ResultHistoryScreen(),
+    ),
+    GoRoute(
+      path: '/session-detail',
+      builder: (context, state) {
+        final session = state.extra;
+        if (session is! SessionModel) {
+          return const SessionDetailMissingScreen();
+        }
+        return SessionDetailScreen(session: session);
+      },
     ),
   ],
 );
