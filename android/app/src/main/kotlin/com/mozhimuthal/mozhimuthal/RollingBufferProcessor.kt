@@ -1,8 +1,9 @@
 package com.mozhimuthal.mozhimuthal
 
 data class ChunkFeatures(
-    val vttl_ms: Double, val pfv_std: Double, val cvr_ratio: Double,
+    val vttl_ms: Double, val cvr_ratio: Double,
     val voiced_ms: Long, val child_voiced_ms: Long, val recorded_ms: Long, val transitions: Int,
+    val pfv_frames: List<PitchFrame> = emptyList(),
     val inference_failed: Boolean = false
 )
 

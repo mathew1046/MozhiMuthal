@@ -73,12 +73,11 @@ class SessionDetailScreen extends StatelessWidget {
                   value: session.cvrRatio.toStringAsFixed(3),
                   flagged: session.cvrFlagged,
                 ),
-                if (session.childAgeMonths >= 36)
-                  _MetricRow(
-                    label: 'PFV',
-                    value: session.pfvStd.toStringAsFixed(2),
-                    flagged: session.pfvFlagged,
-                  ),
+                _MetricRow(
+                  label: 'PFV',
+                  value: _pfvValue(session),
+                  flagged: session.pfvFlagged,
+                ),
                 const Divider(),
                 _LabelValue(
                   label: 'Recording status',
@@ -315,3 +314,15 @@ String _answerLabel(String answer) => switch (answer) {
   'unsure' => 'Unsure',
   _ => answer.isEmpty ? 'Not recorded' : answer,
 };
+
+String _pfvValue(SessionModel session) {
+  if (session.pfvUnit != 'semitones') {
+    return '${session.pfvStd.toStringAsFixed(2)} Hz SD (legacy session)';
+  }
+  if (session.pfvInsufficientData) {
+    return 'Insufficient data (${session.pfvFramesUsed} valid frames)';
+  }
+  final sd = session.pfvRawSemitoneSD ?? session.pfvStd;
+  final z = session.pfvAgeZScore;
+  return '${sd.toStringAsFixed(2)} semitones SD${z == null ? '' : ' · z ${z.toStringAsFixed(2)}'}';
+}

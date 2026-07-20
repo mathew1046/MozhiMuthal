@@ -49,6 +49,7 @@ dependencies {
     implementation("com.microsoft.onnxruntime:onnxruntime-android:1.18.0")
     implementation("com.cloudflare.realtimekit.android-vad:webrtc:2.0.10-cf.4")
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar", "*.aar"))))
+    testImplementation("junit:junit:4.13.2")
 }
 
 // The model is intentionally checked at build time. It must be supplied by

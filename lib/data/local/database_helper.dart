@@ -6,7 +6,7 @@ import '../models/session_model.dart';
 class DatabaseHelper {
   static Database? _database;
   static const _dbName = 'mozhimuthal.db';
-  static const _dbVersion = 4;
+  static const _dbVersion = 5;
   static const _tableSessions = 'sessions';
   static final List<SessionModel> _webSessions = [];
 
@@ -59,6 +59,17 @@ class DatabaseHelper {
             await db.execute(sql);
           }
         }
+        if (oldVersion < 5) {
+          for (final sql in const [
+            'ALTER TABLE sessions ADD COLUMN pfv_raw_semitone_sd REAL',
+            'ALTER TABLE sessions ADD COLUMN pfv_age_z_score REAL',
+            'ALTER TABLE sessions ADD COLUMN pfv_frames_used INTEGER NOT NULL DEFAULT 0',
+            'ALTER TABLE sessions ADD COLUMN pfv_insufficient_data INTEGER NOT NULL DEFAULT 1',
+            "ALTER TABLE sessions ADD COLUMN pfv_unit TEXT NOT NULL DEFAULT 'hz_legacy'",
+          ]) {
+            await db.execute(sql);
+          }
+        }
       },
     );
   }
@@ -80,6 +91,11 @@ class DatabaseHelper {
         cvr_ratio REAL,
         vttl_flagged INTEGER,
         pfv_flagged INTEGER,
+        pfv_raw_semitone_sd REAL,
+        pfv_age_z_score REAL,
+        pfv_frames_used INTEGER NOT NULL DEFAULT 0,
+        pfv_insufficient_data INTEGER NOT NULL DEFAULT 1,
+        pfv_unit TEXT NOT NULL DEFAULT 'hz_legacy',
         cvr_flagged INTEGER,
         audio_source TEXT,
         synced INTEGER DEFAULT 0,

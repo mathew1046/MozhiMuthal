@@ -18,11 +18,12 @@ class MainActivity : FlutterActivity() {
     private lateinit var recorder: UnprocessedAudioRecorder
     private val vad = WebRTCVadBridge(2)
     private val runner = PyannoteRunner()
-    private val extractor = FeatureExtractor()
+    private val pfvAnalyzer = PfvAnalyzer()
+    private val extractor = FeatureExtractor(pfvAnalyzer)
     private val executor = Executors.newSingleThreadExecutor()
     private var processing = false
     private var modelError: String? = null
-    private val aggregate = Aggregate()
+    private val aggregate = Aggregate(pfvAnalyzer)
     private var waveformSink: EventChannel.EventSink? = null
     private var microphonePermissionResult: MethodChannel.Result? = null
     private var tts: TextToSpeech? = null
@@ -192,35 +193,41 @@ class MainActivity : FlutterActivity() {
         private const val microphonePermissionRequestCode = 42
     }
 
-    private class Aggregate {
+    private class Aggregate(private val pfvAnalyzer: PfvAnalyzer) {
         var ageMonths = 0
         var voicedMs = 0L; var childMs = 0L; var recordedMs = 0L; var transitions = 0
-        val vttls = mutableListOf<Double>(); val pfvs = mutableListOf<Double>()
+        val vttls = mutableListOf<Double>(); val pfvFrames = mutableListOf<PitchFrame>()
         val waveform = mutableListOf<Double>(); val decisionTrace = mutableListOf<Map<String, Any>>()
-        fun reset() { voicedMs = 0; childMs = 0; recordedMs = 0; transitions = 0; vttls.clear(); pfvs.clear(); waveform.clear(); decisionTrace.clear() }
+        fun reset() { voicedMs = 0; childMs = 0; recordedMs = 0; transitions = 0; vttls.clear(); pfvFrames.clear(); waveform.clear(); decisionTrace.clear() }
         fun addWaveform(level: Double) { waveform += level }
         fun add(f: ChunkFeatures) {
             val startMs = recordedMs
             voicedMs += f.voiced_ms; childMs += f.child_voiced_ms; recordedMs += f.recorded_ms; transitions += f.transitions
-            if (f.vttl_ms > 0) vttls += f.vttl_ms; if (f.pfv_std > 0) pfvs += f.pfv_std
-            decisionTrace += mapOf("start_ms" to startMs, "end_ms" to recordedMs, "vttl_ms" to f.vttl_ms, "pfv_std" to f.pfv_std, "cvr_ratio" to f.cvr_ratio)
+            if (f.vttl_ms > 0) vttls += f.vttl_ms
+            pfvFrames += f.pfv_frames.map { frame ->
+                frame.copy(startMs = frame.startMs + startMs)
+            }
+            decisionTrace += mapOf("start_ms" to startMs, "end_ms" to recordedMs, "vttl_ms" to f.vttl_ms, "pfv_frames" to f.pfv_frames.size, "cvr_ratio" to f.cvr_ratio)
         }
-        fun payload(source: String, age: Int): Map<String, Any> {
+        fun payload(source: String, age: Int): Map<String, Any?> {
             val reasons = mutableListOf<String>()
             if (voicedMs < 20_000) reasons += "At least 20 seconds of voiced audio is required"
             if (childMs < 5_000) reasons += "At least 5 seconds of confident child speech is required"
             if (transitions < 3) reasons += "At least 3 adult-to-child transitions are required"
             val valid = reasons.isEmpty() && vttls.isNotEmpty()
             val median = vttls.sorted().let { if (it.isEmpty()) 0.0 else it[it.size / 2] }
+            val pfv = pfvAnalyzer.analyzeFrames(pfvFrames, age)
             return mapOf("analysis_status" to if (valid) "COMPLETE" else "INCOMPLETE",
                 "quality_reasons" to reasons, "voiced_seconds" to voicedMs / 1000.0,
                 "child_voiced_seconds" to childMs / 1000.0, "transition_count" to transitions,
-                "vttl_ms" to median, "pfv_std" to (pfvs.averageOrZero()),
+                "vttl_ms" to median,
+                // Legacy scalar retained for old clients; it is now semitone SD.
+                "pfv_std" to (pfv.rawPfvSemitoneSD ?: 0.0),
+                "pfv" to pfv.toMap(),
                 "cvr_ratio" to if (recordedMs == 0L) 0.0 else childMs.toDouble() / recordedMs,
                 "child_age_months" to age, "audio_source_used" to source,
                 "waveform" to waveform, "decision_trace" to decisionTrace,
                 "model_version" to "onnx-community/pyannote-segmentation-3.0@pinned", "raw_audio" to false)
         }
-        private fun List<Double>.averageOrZero() = if (isEmpty()) 0.0 else average()
     }
 }

@@ -7,6 +7,10 @@ class BiomarkerResult {
   final bool vttlFlagged;
   final bool pfvFlagged;
   final bool cvrFlagged;
+  final double? pfvRawSemitoneSD;
+  final double? pfvAgeZScore;
+  final int pfvFramesUsed;
+  final bool pfvInsufficientData;
   final String malayalamExplanation;
   final bool incomplete;
   final List<String> qualityReasons;
@@ -16,6 +20,10 @@ class BiomarkerResult {
     required this.vttlFlagged,
     required this.pfvFlagged,
     required this.cvrFlagged,
+    this.pfvRawSemitoneSD,
+    this.pfvAgeZScore,
+    this.pfvFramesUsed = 0,
+    this.pfvInsufficientData = true,
     required this.malayalamExplanation,
     this.incomplete = false,
     this.qualityReasons = const [],
@@ -26,6 +34,10 @@ class BiomarkerResult {
       vttlFlagged = false,
       pfvFlagged = false,
       cvrFlagged = false,
+      pfvRawSemitoneSD = null,
+      pfvAgeZScore = null,
+      pfvFramesUsed = 0,
+      pfvInsufficientData = true,
       incomplete = true,
       malayalamExplanation =
           'Incomplete—repeat recording. ഇത് രോഗനിർണ്ണയം അല്ല.';
@@ -60,6 +72,10 @@ class BiomarkerResult {
     'risk_level': riskLevel.name,
     'vttl_flagged': vttlFlagged,
     'pfv_flagged': pfvFlagged,
+    'pfv_raw_semitone_sd': pfvRawSemitoneSD,
+    'pfv_age_z_score': pfvAgeZScore,
+    'pfv_frames_used': pfvFramesUsed,
+    'pfv_insufficient_data': pfvInsufficientData,
     'cvr_flagged': cvrFlagged,
     'malayalam_explanation': malayalamExplanation,
     'incomplete': incomplete,

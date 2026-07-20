@@ -32,6 +32,7 @@ create table public.screening_sessions (
   consent_id uuid not null references public.consents(id), mode text not null check(mode in ('live','demo')),
   analysis_status text not null, risk_level text, quality_reasons jsonb not null default '[]'::jsonb,
   vttl_ms double precision, cvr_ratio double precision, pfv_std double precision,
+  pfv_analysis jsonb not null default '{}'::jsonb,
   voiced_seconds double precision, child_voiced_seconds double precision, transition_count int,
   audio_source text, model_version text,
   questionnaire_analysis jsonb not null default '{}'::jsonb,
@@ -76,9 +77,9 @@ begin
     values((b->>'questionnaire_run_id')::uuid, auth.uid(), child_uuid, coalesce(b->>'engine_version','mychild-engine'), (b->>'child_age_months')::int, b->>'questionnaire_state', coalesce(b->'answers','{}'), coalesce(b->'questionnaire_analysis','{}'))
     on conflict (id) do update set answers=excluded.answers, state=excluded.state, analysis=excluded.analysis;
   q_uuid := (b->>'questionnaire_run_id')::uuid;
-  insert into screening_sessions(id, owner_id, child_id, questionnaire_run_id, consent_id, mode, analysis_status, risk_level, quality_reasons, vttl_ms, cvr_ratio, pfv_std, voiced_seconds, child_voiced_seconds, transition_count, audio_source, model_version, questionnaire_analysis, decision_trace, waveform, created_at)
-    values((b->>'session_id')::uuid, auth.uid(), child_uuid, q_uuid, consent_uuid, 'live', b->>'analysis_status', b->>'risk_level', coalesce(b->'quality_reasons','[]'), (b->>'vttl_ms')::float8, (b->>'cvr_ratio')::float8, (b->>'pfv_std')::float8, (b->>'voiced_seconds')::float8, (b->>'child_voiced_seconds')::float8, (b->>'transition_count')::int, b->>'audio_source', b->>'model_version', coalesce(b->'questionnaire_analysis','{}'), coalesce(b->'decision_trace','[]'), coalesce(b->'waveform','[]'), coalesce(nullif(b->>'session_date','')::timestamptz, now()))
-    on conflict (id) do update set analysis_status=excluded.analysis_status, risk_level=excluded.risk_level, questionnaire_analysis=excluded.questionnaire_analysis, decision_trace=excluded.decision_trace, waveform=excluded.waveform;
+  insert into screening_sessions(id, owner_id, child_id, questionnaire_run_id, consent_id, mode, analysis_status, risk_level, quality_reasons, vttl_ms, cvr_ratio, pfv_std, pfv_analysis, voiced_seconds, child_voiced_seconds, transition_count, audio_source, model_version, questionnaire_analysis, decision_trace, waveform, created_at)
+    values((b->>'session_id')::uuid, auth.uid(), child_uuid, q_uuid, consent_uuid, 'live', b->>'analysis_status', b->>'risk_level', coalesce(b->'quality_reasons','[]'), (b->>'vttl_ms')::float8, (b->>'cvr_ratio')::float8, (b->>'pfv_std')::float8, coalesce(b->'pfv_analysis','{}'), (b->>'voiced_seconds')::float8, (b->>'child_voiced_seconds')::float8, (b->>'transition_count')::int, b->>'audio_source', b->>'model_version', coalesce(b->'questionnaire_analysis','{}'), coalesce(b->'decision_trace','[]'), coalesce(b->'waveform','[]'), coalesce(nullif(b->>'session_date','')::timestamptz, now()))
+    on conflict (id) do update set analysis_status=excluded.analysis_status, risk_level=excluded.risk_level, pfv_analysis=excluded.pfv_analysis, questionnaire_analysis=excluded.questionnaire_analysis, decision_trace=excluded.decision_trace, waveform=excluded.waveform;
   session_uuid := (b->>'session_id')::uuid;
   insert into sync_metadata(owner_id,last_synced_at) values(auth.uid(),now()) on conflict(owner_id) do update set last_synced_at=excluded.last_synced_at;
   return jsonb_build_object('session_id', session_uuid, 'synced', true);
@@ -100,6 +101,7 @@ select
   s.vttl_ms,
   s.cvr_ratio,
   s.pfv_std,
+  s.pfv_analysis,
   s.voiced_seconds,
   s.child_voiced_seconds,
   s.transition_count,

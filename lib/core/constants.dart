@@ -9,8 +9,8 @@ class AppConstants {
 
   // ── Biomarker thresholds ──
   static const double vttlThresholdMs = 1000;
-  static const double pfvFlatThreshold = 15.0; // std dev below = flat
-  static const int pfvMinAgeMonths = 36; // PFV only applies ≥ 36 months
+  static const double pfvZScoreFlagThreshold = 1.75;
+  static const int pfvMinimumValidFrames = 30;
 
   static const Map<String, double> cvrThresholds = {
     '12_24': 0.08,

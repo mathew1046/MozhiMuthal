@@ -63,12 +63,12 @@ class ReferralScreen extends ConsumerWidget {
                     value:
                         '${session.cvrRatio.toStringAsFixed(3)} ${session.result?.cvrFlagged == true ? "⚠" : "✓"}',
                   ),
-                  if (profile != null && profile.childAgeMonths >= 36) ...[
+                  if (session.result?.pfvInsufficientData != true) ...[
                     const SizedBox(height: 6),
                     _InfoRow(
                       label: 'PFV',
                       value:
-                          '${session.pfvStd.toStringAsFixed(2)} ${session.result?.pfvFlagged == true ? "⚠" : "✓"}',
+                          '${session.pfvStd.toStringAsFixed(2)} semitones SD ${session.result?.pfvFlagged == true ? "⚠" : "✓"}',
                     ),
                   ],
                   const SizedBox(height: 16),

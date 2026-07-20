@@ -80,9 +80,9 @@ class ReferralGenerator {
             pw.Text(
               'CVR Ratio: ${session.cvrRatio.toStringAsFixed(3)} ${session.cvrFlagged ? "⚠ Flagged" : "✓ Normal"}',
             ),
-            if (session.pfvFlagged || session.childAgeMonths >= 36)
+            if (session.pfvFlagged || !session.pfvInsufficientData)
               pw.Text(
-                'PFV Std Dev: ${session.pfvStd.toStringAsFixed(2)} ${session.pfvFlagged ? "⚠ Flagged" : "✓ Normal"}',
+                'PFV Semitone SD: ${(session.pfvRawSemitoneSD ?? session.pfvStd).toStringAsFixed(2)} ${session.pfvFlagged ? "⚠ Flagged" : "✓ Normal"}',
               ),
             pw.Divider(),
             pw.Text('This child requires further evaluation at a DEIC center.'),

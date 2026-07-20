@@ -1,6 +1,40 @@
 import '../data/models/biomarker_result.dart';
 import '../core/constants.dart';
 
+/// Structured PFV output produced by the Android frame-level pitch analyzer.
+class PfvScreeningResult {
+  final double? rawPfvSemitoneSD;
+  final double? ageZScore;
+  final bool isFlagged;
+  final int framesUsed;
+  final bool insufficientData;
+
+  const PfvScreeningResult({
+    required this.rawPfvSemitoneSD,
+    required this.ageZScore,
+    required this.isFlagged,
+    required this.framesUsed,
+    required this.insufficientData,
+  });
+
+  factory PfvScreeningResult.fromJson(Map<String, dynamic> json) =>
+      PfvScreeningResult(
+        rawPfvSemitoneSD: (json['raw_pfv_semitone_sd'] as num?)?.toDouble(),
+        ageZScore: (json['age_z_score'] as num?)?.toDouble(),
+        isFlagged: json['is_flagged'] as bool? ?? false,
+        framesUsed: (json['frames_used'] as num?)?.toInt() ?? 0,
+        insufficientData: json['insufficient_data'] as bool? ?? true,
+      );
+
+  Map<String, dynamic> toJson() => {
+    'raw_pfv_semitone_sd': rawPfvSemitoneSD,
+    'age_z_score': ageZScore,
+    'is_flagged': isFlagged,
+    'frames_used': framesUsed,
+    'insufficient_data': insufficientData,
+  };
+}
+
 /// Input features from the native audio pipeline.
 class SessionFeatures {
   final double vttlMs;
@@ -9,6 +43,7 @@ class SessionFeatures {
   final int childAgeMonths;
   final String audioSourceUsed;
   final String analysisStatus;
+  final PfvScreeningResult? pfv;
   final List<String> qualityReasons;
   final int transitionCount;
   final double voicedSeconds;
@@ -23,6 +58,7 @@ class SessionFeatures {
     required this.childAgeMonths,
     this.audioSourceUsed = 'UNPROCESSED',
     this.analysisStatus = 'COMPLETE',
+    this.pfv,
     this.qualityReasons = const [],
     this.transitionCount = 0,
     this.voicedSeconds = 0,
@@ -35,6 +71,11 @@ class SessionFeatures {
       SessionFeatures(
         vttlMs: (json['vttl_ms'] as num?)?.toDouble() ?? 0,
         pfvStd: (json['pfv_std'] as num?)?.toDouble() ?? 0,
+        pfv: json['pfv'] is Map
+            ? PfvScreeningResult.fromJson(
+                Map<String, dynamic>.from(json['pfv'] as Map),
+              )
+            : null,
         cvrRatio: (json['cvr_ratio'] as num?)?.toDouble() ?? 0,
         childAgeMonths: json['child_age_months'] as int,
         audioSourceUsed: json['audio_source_used'] as String? ?? 'UNPROCESSED',
@@ -71,10 +112,9 @@ class ScoringEngine {
     }
     final bool vttlFlagged = f.vttlMs > AppConstants.vttlThresholdMs;
 
-    bool pfvFlagged = false;
-    if (f.childAgeMonths >= AppConstants.pfvMinAgeMonths) {
-      pfvFlagged = f.pfvStd < AppConstants.pfvFlatThreshold;
-    }
+    final pfv = f.pfv;
+    final bool pfvFlagged =
+        pfv != null && !pfv.insufficientData && pfv.isFlagged;
 
     final String ageBucket = AppConstants.getAgeBucket(f.childAgeMonths);
     final double cvrThreshold = AppConstants.cvrThresholds[ageBucket]!;
@@ -96,6 +136,10 @@ class ScoringEngine {
       riskLevel: level,
       vttlFlagged: vttlFlagged,
       pfvFlagged: pfvFlagged,
+      pfvRawSemitoneSD: pfv?.rawPfvSemitoneSD,
+      pfvAgeZScore: pfv?.ageZScore,
+      pfvFramesUsed: pfv?.framesUsed ?? 0,
+      pfvInsufficientData: pfv?.insufficientData ?? true,
       cvrFlagged: cvrFlagged,
       malayalamExplanation: _getExplanation(level),
     );

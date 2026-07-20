@@ -119,9 +119,9 @@ class ResultScreen extends ConsumerWidget {
             const SizedBox(height: 8),
             BiomarkerChipWidget(
               label: 'PFV',
-              value: session.childProfile!.childAgeMonths >= 36
-                  ? session.pfvStd.toStringAsFixed(2)
-                  : 'Available from 36 months',
+              value: result.pfvInsufficientData
+                  ? 'Insufficient data'
+                  : '${session.pfvStd.toStringAsFixed(2)} st SD',
               flagged: result.pfvFlagged,
               onTap: () => showBiomarkerDetail(
                 context,
@@ -131,6 +131,9 @@ class ResultScreen extends ConsumerWidget {
                 flagged: result.pfvFlagged,
                 waveform: session.waveform,
                 trace: session.decisionTrace,
+                pfvInsufficientData: result.pfvInsufficientData,
+                pfvAgeZScore: result.pfvAgeZScore,
+                pfvFramesUsed: result.pfvFramesUsed,
               ),
             ),
 

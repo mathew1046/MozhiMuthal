@@ -18,6 +18,11 @@ class SessionModel {
   final bool vttlFlagged;
   final bool pfvFlagged;
   final bool cvrFlagged;
+  final double? pfvRawSemitoneSD;
+  final double? pfvAgeZScore;
+  final int pfvFramesUsed;
+  final bool pfvInsufficientData;
+  final String pfvUnit;
   final String audioSourceUsed;
   final bool syncedToCloud;
   final String districtCode;
@@ -53,6 +58,11 @@ class SessionModel {
     required this.vttlFlagged,
     required this.pfvFlagged,
     required this.cvrFlagged,
+    this.pfvRawSemitoneSD,
+    this.pfvAgeZScore,
+    this.pfvFramesUsed = 0,
+    this.pfvInsufficientData = true,
+    this.pfvUnit = 'hz_legacy',
     required this.audioSourceUsed,
     this.syncedToCloud = false,
     required this.districtCode,
@@ -87,6 +97,11 @@ class SessionModel {
     bool? vttlFlagged,
     bool? pfvFlagged,
     bool? cvrFlagged,
+    double? pfvRawSemitoneSD,
+    double? pfvAgeZScore,
+    int? pfvFramesUsed,
+    bool? pfvInsufficientData,
+    String? pfvUnit,
     String? audioSourceUsed,
     bool? syncedToCloud,
     String? districtCode,
@@ -107,6 +122,11 @@ class SessionModel {
       vttlFlagged: vttlFlagged ?? this.vttlFlagged,
       pfvFlagged: pfvFlagged ?? this.pfvFlagged,
       cvrFlagged: cvrFlagged ?? this.cvrFlagged,
+      pfvRawSemitoneSD: pfvRawSemitoneSD ?? this.pfvRawSemitoneSD,
+      pfvAgeZScore: pfvAgeZScore ?? this.pfvAgeZScore,
+      pfvFramesUsed: pfvFramesUsed ?? this.pfvFramesUsed,
+      pfvInsufficientData: pfvInsufficientData ?? this.pfvInsufficientData,
+      pfvUnit: pfvUnit ?? this.pfvUnit,
       audioSourceUsed: audioSourceUsed ?? this.audioSourceUsed,
       syncedToCloud: syncedToCloud ?? this.syncedToCloud,
       districtCode: districtCode ?? this.districtCode,
@@ -143,6 +163,11 @@ class SessionModel {
     'cvr_ratio': cvrRatio,
     'vttl_flagged': vttlFlagged ? 1 : 0,
     'pfv_flagged': pfvFlagged ? 1 : 0,
+    'pfv_raw_semitone_sd': pfvRawSemitoneSD,
+    'pfv_age_z_score': pfvAgeZScore,
+    'pfv_frames_used': pfvFramesUsed,
+    'pfv_insufficient_data': pfvInsufficientData ? 1 : 0,
+    'pfv_unit': pfvUnit,
     'cvr_flagged': cvrFlagged ? 1 : 0,
     'audio_source': audioSourceUsed,
     'synced': syncedToCloud ? 1 : 0,
@@ -180,11 +205,18 @@ class SessionModel {
       orElse: () => RiskLevel.green,
     ),
     vttlMs: (map['vttl_ms'] as num).toDouble(),
-    pfvStd: (map['pfv_std'] as num).toDouble(),
+    pfvStd: (map['pfv_std'] as num?)?.toDouble() ?? 0,
     cvrRatio: (map['cvr_ratio'] as num).toDouble(),
     vttlFlagged: map['vttl_flagged'] == 1,
     pfvFlagged: map['pfv_flagged'] == 1,
     cvrFlagged: map['cvr_flagged'] == 1,
+    pfvRawSemitoneSD: (map['pfv_raw_semitone_sd'] as num?)?.toDouble(),
+    pfvAgeZScore: (map['pfv_age_z_score'] as num?)?.toDouble(),
+    pfvFramesUsed: (map['pfv_frames_used'] as num?)?.toInt() ?? 0,
+    pfvInsufficientData: map['pfv_insufficient_data'] == null
+        ? true
+        : map['pfv_insufficient_data'] == 1,
+    pfvUnit: map['pfv_unit'] as String? ?? 'hz_legacy',
     audioSourceUsed: map['audio_source'] as String? ?? 'UNPROCESSED',
     syncedToCloud: map['synced'] == 1,
     districtCode: map['district_code'] as String? ?? '',
@@ -230,6 +262,19 @@ class SessionModel {
     'cvr_ratio': cvrRatio,
     'vttl_flagged': vttlFlagged,
     'pfv_flagged': pfvFlagged,
+    'pfv_raw_semitone_sd': pfvRawSemitoneSD,
+    'pfv_age_z_score': pfvAgeZScore,
+    'pfv_frames_used': pfvFramesUsed,
+    'pfv_insufficient_data': pfvInsufficientData,
+    'pfv_unit': pfvUnit,
+    'pfv_analysis': {
+      'raw_pfv_semitone_sd': pfvRawSemitoneSD,
+      'age_z_score': pfvAgeZScore,
+      'frames_used': pfvFramesUsed,
+      'insufficient_data': pfvInsufficientData,
+      'is_flagged': pfvFlagged,
+      'unit': pfvUnit,
+    },
     'cvr_flagged': cvrFlagged,
     'audio_source': audioSourceUsed,
     'session_date': sessionDate.toIso8601String(),
