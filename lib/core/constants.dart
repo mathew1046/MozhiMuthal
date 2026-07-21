@@ -5,12 +5,12 @@ class AppConstants {
 
   // ── Age validation ──
   static const int minAgeMonths = 12;
-  static const int maxAgeMonths = 60;
+  static const int maxAgeMonths = 36;
 
   // ── Biomarker thresholds ──
   static const double vttlThresholdMs = 1000;
-  static const double pfvFlatThreshold = 15.0; // std dev below = flat
-  static const int pfvMinAgeMonths = 36; // PFV only applies ≥ 36 months
+  static const double pfvZScoreFlagThreshold = 1.75;
+  static const int pfvMinimumValidFrames = 30;
 
   static const Map<String, double> cvrThresholds = {
     '12_24': 0.08,
@@ -26,6 +26,9 @@ class AppConstants {
 
   // ── Method channel ──
   static const String audioPipelineChannel = 'com.mozhimuthal/audio_pipeline';
+  static const String myChildEngineVersion = '0.5.0';
+  static const String questionnaireDisclaimer =
+      'ഇത് രോഗനിർണ്ണയം അല്ല. ഒരു ആരോഗ്യപ്രവർത്തകന്റെ വിലയിരുത്തൽ ആവശ്യമാണ്.';
 
   // ── Age bucket helper ──
   static String getAgeBucket(int months) {

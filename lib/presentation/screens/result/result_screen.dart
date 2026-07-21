@@ -1,175 +1,263 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
 import '../../../data/models/biomarker_result.dart';
+import '../../../domain/my_child_engine.dart';
 import '../../providers/session_provider.dart';
-import '../../widgets/app_ui.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'biomarker_chip.dart';
+import 'biomarker_detail_sheet.dart';
 
 class ResultScreen extends ConsumerWidget {
   const ResultScreen({super.key});
-
-  Future<void> _saveAndLeave(
-    BuildContext context,
-    WidgetRef ref, {
-    required bool referral,
-  }) async {
-    final prefs = await SharedPreferences.getInstance();
-    final workerName = prefs.getString('worker_name') ?? 'Worker';
-    await ref.read(sessionProvider.notifier).completeSession(workerName);
-    if (!context.mounted) return;
-    if (referral) {
-      context.push('/referral');
-    } else {
-      context.go('/');
-    }
-  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final session = ref.watch(sessionProvider);
     final result = session.result;
     final theme = Theme.of(context);
-    final colors = theme.colorScheme;
-    if (result == null) {
-      return Scaffold(
-        body: Center(
-          child: SoftCard(
-            child: Text(
-              'No result is available yet.',
-              style: theme.textTheme.titleMedium,
-            ),
-          ),
-        ),
-      );
-    }
 
-    final riskColor = result.riskColor;
-    final isRed = result.riskLevel == RiskLevel.red;
-    final statusIcon = isRed
-        ? Icons.priority_high_rounded
-        : result.riskLevel == RiskLevel.yellow
-        ? Icons.visibility_outlined
-        : Icons.check_rounded;
-    final statusTitle = isRed
-        ? 'A DEIC visit is recommended.'
-        : result.riskLevel == RiskLevel.yellow
-        ? 'A follow-up screening is recommended.'
-        : 'The screening is within the expected range.';
+    if (result == null) {
+      return const Scaffold(body: Center(child: Text('No result available')));
+    }
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Screening result'),
+        title: const Text('Result'),
         automaticallyImplyLeading: false,
       ),
-      body: SafeArea(
-        top: false,
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              'COMPLETE',
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: colors.primary,
-                letterSpacing: 1,
-                fontWeight: FontWeight.w800,
+            // Risk card
+            Container(
+              padding: const EdgeInsets.all(28),
+              decoration: BoxDecoration(
+                color: result.riskColor.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: result.riskColor.withOpacity(0.3)),
               ),
-            ),
-            const SizedBox(height: 8),
-            Text('A clear next step.', style: theme.textTheme.headlineSmall),
-            const SizedBox(height: 22),
-            SoftCard(
-              color: riskColor.withValues(
-                alpha: Theme.of(context).brightness == Brightness.dark
-                    ? 0.22
-                    : 0.1,
-              ),
-              padding: const EdgeInsets.all(24),
               child: Column(
                 children: [
-                  RoundIcon(
-                    icon: statusIcon,
-                    size: 70,
-                    color: riskColor.withValues(alpha: 0.17),
-                    iconColor: riskColor,
-                  ),
-                  const SizedBox(height: 16),
                   Text(
                     result.riskLabel,
-                    style: theme.textTheme.displaySmall?.copyWith(
-                      color: riskColor,
-                      fontWeight: FontWeight.w800,
+                    style: TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      color: result.riskColor,
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    statusTitle,
-                    style: theme.textTheme.titleSmall,
-                    textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 12),
                   Text(
                     result.malayalamExplanation,
-                    style: theme.textTheme.bodyMedium,
                     textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: theme.colorScheme.onSurface.withOpacity(0.7),
+                    ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 26),
-            Text('Biomarker summary', style: theme.textTheme.titleMedium),
-            const SizedBox(height: 6),
-            Text(
-              'These measurements guide the follow-up recommendation.',
-              style: theme.textTheme.bodySmall,
+            const SizedBox(height: 8),
+            if (session.audioSource == 'WEB_TEST_FIXTURE')
+              const Padding(
+                padding: EdgeInsets.only(bottom: 12),
+                child: Text(
+                  'Browser test data — not a live microphone/model result.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 12),
+                ),
+              ),
+            const Text(
+              'Screening signal only — not a diagnosis. Discuss concerns with a clinician/DEIC.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 12),
             ),
-            const SizedBox(height: 13),
+            const SizedBox(height: 28),
+
+            if (session.questionnaireState != null) ...[
+              _QuestionnaireSummary(
+                state: session.questionnaireState!,
+                evaluation: session.questionnaireEvaluation,
+              ),
+              const SizedBox(height: 16),
+            ],
+
+            // Biomarker chips
             BiomarkerChipWidget(
-              label: 'Vocal turn-taking',
+              label: 'VTTL',
               value: '${session.vttlMs.toStringAsFixed(0)} ms',
               flagged: result.vttlFlagged,
+              onTap: () => showBiomarkerDetail(
+                context,
+                kind: BiomarkerKind.vttl,
+                ageMonths: session.childProfile!.childAgeMonths,
+                value: session.vttlMs,
+                flagged: result.vttlFlagged,
+                waveform: session.waveform,
+                trace: session.decisionTrace,
+              ),
             ),
-            const SizedBox(height: 9),
+            const SizedBox(height: 8),
             BiomarkerChipWidget(
-              label: 'Child vocalisation',
+              label: 'CVR',
               value: session.cvrRatio.toStringAsFixed(3),
               flagged: result.cvrFlagged,
-            ),
-            if (session.childProfile?.childAgeMonths != null &&
-                session.childProfile!.childAgeMonths >= 36) ...[
-              const SizedBox(height: 9),
-              BiomarkerChipWidget(
-                label: 'Prosodic variation',
-                value: session.pfvStd.toStringAsFixed(2),
-                flagged: result.pfvFlagged,
+              onTap: () => showBiomarkerDetail(
+                context,
+                kind: BiomarkerKind.cvr,
+                ageMonths: session.childProfile!.childAgeMonths,
+                value: session.cvrRatio,
+                flagged: result.cvrFlagged,
+                waveform: session.waveform,
+                trace: session.decisionTrace,
               ),
-            ],
-            const SizedBox(height: 26),
-            if (isRed)
+            ),
+            const SizedBox(height: 8),
+            BiomarkerChipWidget(
+              label: 'PFV',
+              value: result.pfvInsufficientData
+                  ? 'Insufficient data'
+                  : '${session.pfvStd.toStringAsFixed(2)} st SD',
+              flagged: result.pfvFlagged,
+              onTap: () => showBiomarkerDetail(
+                context,
+                kind: BiomarkerKind.pfv,
+                ageMonths: session.childProfile!.childAgeMonths,
+                value: session.pfvStd,
+                flagged: result.pfvFlagged,
+                waveform: session.waveform,
+                trace: session.decisionTrace,
+                pfvInsufficientData: result.pfvInsufficientData,
+                pfvAgeZScore: result.pfvAgeZScore,
+                pfvFramesUsed: result.pfvFramesUsed,
+              ),
+            ),
+
+            const SizedBox(height: 28),
+
+            // Save & referral
+            if (result.riskLevel == RiskLevel.red)
               FilledButton.icon(
-                onPressed: () => _saveAndLeave(context, ref, referral: true),
-                style: FilledButton.styleFrom(
-                  backgroundColor: riskColor,
-                  foregroundColor: Colors.white,
-                ),
+                onPressed: () async {
+                  final prefs = await SharedPreferences.getInstance();
+                  final workerName = prefs.getString('worker_name') ?? 'Worker';
+                  await ref
+                      .read(sessionProvider.notifier)
+                      .completeSession(workerName);
+                  if (context.mounted) context.push('/referral');
+                },
                 icon: const Icon(Icons.description_outlined),
-                label: const Text('Save and prepare referral'),
+                label: const Text('Generate Referral'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: result.riskColor,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                ),
               )
             else
-              FilledButton.icon(
-                onPressed: () => _saveAndLeave(context, ref, referral: false),
-                icon: const Icon(Icons.check_rounded),
-                label: const Text('Save screening'),
+              FilledButton(
+                onPressed: () async {
+                  final prefs = await SharedPreferences.getInstance();
+                  final workerName = prefs.getString('worker_name') ?? 'Worker';
+                  await ref
+                      .read(sessionProvider.notifier)
+                      .completeSession(workerName);
+                  if (context.mounted) context.go('/');
+                },
+                style: FilledButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                ),
+                child: const Text('Save & Return'),
               ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             TextButton(
               onPressed: () => context.go('/'),
-              child: const Text('Back to home'),
+              child: const Text('Back to Dashboard'),
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _QuestionnaireSummary extends StatelessWidget {
+  const _QuestionnaireSummary({required this.state, this.evaluation});
+  final MyChildState state;
+  final MyChildEvaluation? evaluation;
+
+  @override
+  Widget build(BuildContext context) {
+    final e = evaluation;
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Development questionnaire: ${MyChildEngine.tier(state)} — ${state.name}.',
+            style: const TextStyle(fontWeight: FontWeight.w700),
+          ),
+          if (e != null) ...[
+            const SizedBox(height: 6),
+            Text(e.message),
+            Text(
+              'Scored age: ${e.effectiveAgeMonths.toStringAsFixed(1)} months${e.correctedAgeUsed ? ' corrected' : ''}',
+              style: const TextStyle(fontSize: 12),
+            ),
+            const SizedBox(height: 12),
+            ...e.domains.values.map(
+              (d) => ExpansionTile(
+                tilePadding: EdgeInsets.zero,
+                title: Text(d.domain),
+                subtitle: Text(d.status.replaceAll('_', ' ')),
+                children: [
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(d.explanation),
+                  ),
+                  const SizedBox(height: 6),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Flags ${d.flagCount} · Warnings ${d.warningCount} · Precautions ${d.precautionCount} · Confidence ${d.confidence}',
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            ExpansionTile(
+              tilePadding: EdgeInsets.zero,
+              title: const Text('Question-level explanations'),
+              children: e.questions
+                  .where((q) => q.severity != MyChildSeverity.normal)
+                  .map(
+                    (q) => ListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(q.question.malayalam ?? q.question.prompt),
+                      subtitle: Text(
+                        '${q.severity.name}: ${q.detail.appliedRule}\n${q.detail.recommendedAction}',
+                      ),
+                    ),
+                  )
+                  .toList(),
+            ),
+          ],
+          const SizedBox(height: 8),
+          const Text(
+            'This parent-report result supports, but does not replace, the acoustic screening.',
+            style: TextStyle(fontSize: 12),
+          ),
+        ],
       ),
     );
   }

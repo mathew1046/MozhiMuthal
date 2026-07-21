@@ -1,3 +1,5 @@
+import java.security.MessageDigest
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
@@ -45,5 +47,24 @@ flutter {
 
 dependencies {
     implementation("com.microsoft.onnxruntime:onnxruntime-android:1.18.0")
+    implementation("com.cloudflare.realtimekit.android-vad:webrtc:2.0.10-cf.4")
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar", "*.aar"))))
+    testImplementation("junit:junit:4.13.2")
+}
+
+// The model is intentionally checked at build time. It must be supplied by
+// the release process; the app never downloads a model or uses a token.
+tasks.register("verifyPyannoteModel") {
+    val model = file("src/main/assets/models/pyannote-segmentation-3.0.onnx")
+    val manifest = file("src/main/assets/models/SHA256SUMS")
+    doLast {
+        check(model.exists()) { "Missing pinned Pyannote ONNX model: $model" }
+        check(manifest.exists()) { "Missing model checksum manifest: $manifest" }
+        val expected = manifest.readLines().firstOrNull { it.endsWith("  pyannote-segmentation-3.0.onnx") }
+            ?.substringBefore("  ")?.trim()
+        check(!expected.isNullOrBlank()) { "Checksum manifest has no model entry" }
+        val digest = MessageDigest.getInstance("SHA-256")
+            .digest(model.readBytes()).joinToString("") { byte -> "%02x".format(byte) }
+        check(digest.equals(expected, ignoreCase = true)) { "Pyannote model SHA-256 mismatch" }
+    }
 }

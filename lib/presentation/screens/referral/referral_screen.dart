@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
-import '../../../services/whatsapp_service.dart';
 import '../../providers/session_provider.dart';
-import '../../widgets/app_ui.dart';
+import '../../../services/whatsapp_service.dart';
 
 class ReferralScreen extends ConsumerWidget {
   const ReferralScreen({super.key});
@@ -14,96 +12,80 @@ class ReferralScreen extends ConsumerWidget {
     final session = ref.watch(sessionProvider);
     final profile = session.childProfile;
     final theme = Theme.of(context);
-    final colors = theme.colorScheme;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Referral support')),
-      body: SafeArea(
-        top: false,
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+      appBar: AppBar(title: const Text('Referral Letter')),
+      body: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const PageIntro(
-              eyebrow: 'Recommended follow-up',
-              title: 'Help the family take the next step.',
-              subtitle:
-                  'Share the screening outcome and support a DEIC visit for further assessment.',
-            ),
-            const SizedBox(height: 24),
-            SoftCard(
-              color: colors.tertiaryContainer.withValues(alpha: 0.47),
+            // Referral preview card
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surface,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: theme.colorScheme.onSurface.withOpacity(0.1),
+                ),
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      RoundIcon(
-                        icon: Icons.description_outlined,
-                        color: colors.tertiary,
-                        iconColor: colors.onTertiary,
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          'MozhiMuthal referral',
-                          style: theme.textTheme.titleMedium,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 22),
-                  const Divider(),
-                  const SizedBox(height: 12),
-                  _InfoRow(
-                    label: 'Anganwadi',
-                    value: profile?.anganwadiId ?? '—',
-                  ),
-                  _InfoRow(
-                    label: 'Child age',
-                    value: '${profile?.childAgeMonths ?? '—'} months',
-                  ),
-                  _InfoRow(
-                    label: 'Vocal turn-taking',
-                    value: '${session.vttlMs.toStringAsFixed(0)} ms',
-                  ),
-                  _InfoRow(
-                    label: 'Child vocalisation',
-                    value: session.cvrRatio.toStringAsFixed(3),
-                  ),
-                  if (profile?.childAgeMonths != null &&
-                      profile!.childAgeMonths >= 36)
-                    _InfoRow(
-                      label: 'Prosodic variation',
-                      value: session.pfvStd.toStringAsFixed(2),
-                    ),
-                  const SizedBox(height: 18),
                   Text(
-                    'This screen indicates that a more detailed DEIC assessment would be helpful.',
-                    style: theme.textTheme.bodyMedium,
+                    'MozhiMuthal Referral',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: theme.colorScheme.onSurface,
+                    ),
                   ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-            SoftCard(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  RoundIcon(
-                    icon: Icons.favorite_outline_rounded,
-                    size: 42,
-                    color: colors.primaryContainer,
+                  const Divider(height: 24),
+                  _InfoRow(
+                    label: 'Anganwadi ID',
+                    value: profile?.anganwadiId ?? '-',
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'Use supportive language: this is a recommendation for further assessment, not a diagnosis.',
-                      style: theme.textTheme.bodySmall,
+                  const SizedBox(height: 6),
+                  _InfoRow(
+                    label: 'Child Age',
+                    value: '${profile?.childAgeMonths ?? "-"} months',
+                  ),
+                  const SizedBox(height: 6),
+                  _InfoRow(
+                    label: 'VTTL',
+                    value:
+                        '${session.vttlMs.toStringAsFixed(0)} ms ${session.result?.vttlFlagged == true ? "⚠" : "✓"}',
+                  ),
+                  const SizedBox(height: 6),
+                  _InfoRow(
+                    label: 'CVR',
+                    value:
+                        '${session.cvrRatio.toStringAsFixed(3)} ${session.result?.cvrFlagged == true ? "⚠" : "✓"}',
+                  ),
+                  if (session.result?.pfvInsufficientData != true) ...[
+                    const SizedBox(height: 6),
+                    _InfoRow(
+                      label: 'PFV',
+                      value:
+                          '${session.pfvStd.toStringAsFixed(2)} semitones SD ${session.result?.pfvFlagged == true ? "⚠" : "✓"}',
+                    ),
+                  ],
+                  const SizedBox(height: 16),
+                  Text(
+                    'ഈ കുട്ടിക്ക് DEIC-ൽ കൂടുതൽ വിലയിരുത്തൽ ആവശ്യമാണ്.',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: theme.colorScheme.onSurface.withOpacity(0.7),
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 28),
+
+            const Spacer(),
+
+            // Share via WhatsApp
             FilledButton.icon(
               onPressed: () async {
                 final sent = await WhatsAppService.share(
@@ -117,23 +99,27 @@ class ReferralScreen extends ConsumerWidget {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text(
-                        'Could not open WhatsApp. Please check that it is installed.',
+                        'Could not open WhatsApp. Please check if it is installed.',
                       ),
                     ),
                   );
                 }
               },
+              icon: const Icon(Icons.share),
+              label: const Text('Share via WhatsApp'),
               style: FilledButton.styleFrom(
                 backgroundColor: const Color(0xFF25D366),
                 foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
               ),
-              icon: const Icon(Icons.share_rounded),
-              label: const Text('Share via WhatsApp'),
             ),
-            const SizedBox(height: 8),
-            TextButton(
+            const SizedBox(height: 12),
+            OutlinedButton(
               onPressed: () => context.go('/'),
-              child: const Text('Back to home'),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+              ),
+              child: const Text('Back to Dashboard'),
             ),
           ],
         ),
@@ -150,15 +136,21 @@ class _InfoRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 7),
-      child: Row(
-        children: [
-          Expanded(child: Text(label, style: theme.textTheme.bodySmall)),
-          Text(value, style: theme.textTheme.labelLarge),
-        ],
-      ),
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
+          ),
+        ),
+        Text(
+          value,
+          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+        ),
+      ],
     );
   }
 }

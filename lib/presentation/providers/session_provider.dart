@@ -3,6 +3,7 @@ import '../../data/models/child_profile.dart';
 import '../../data/models/biomarker_result.dart';
 import '../../data/models/session_model.dart';
 import '../../data/repositories/session_repository.dart';
+import '../../domain/my_child_engine.dart';
 import 'package:uuid/uuid.dart';
 
 /// Current screening session state.
@@ -14,6 +15,11 @@ class SessionState {
   final double cvrRatio;
   final String audioSource;
   final bool isComplete;
+  final List<double> waveform;
+  final List<Map<String, dynamic>> decisionTrace;
+  final Map<String, MyChildAnswer> questionnaireAnswers;
+  final MyChildState? questionnaireState;
+  final MyChildEvaluation? questionnaireEvaluation;
 
   const SessionState({
     this.childProfile,
@@ -23,6 +29,11 @@ class SessionState {
     this.cvrRatio = 0,
     this.audioSource = 'MOCK',
     this.isComplete = false,
+    this.waveform = const [],
+    this.decisionTrace = const [],
+    this.questionnaireAnswers = const {},
+    this.questionnaireState,
+    this.questionnaireEvaluation,
   });
 
   SessionState copyWith({
@@ -33,6 +44,11 @@ class SessionState {
     double? cvrRatio,
     String? audioSource,
     bool? isComplete,
+    List<double>? waveform,
+    List<Map<String, dynamic>>? decisionTrace,
+    Map<String, MyChildAnswer>? questionnaireAnswers,
+    MyChildState? questionnaireState,
+    MyChildEvaluation? questionnaireEvaluation,
   }) {
     return SessionState(
       childProfile: childProfile ?? this.childProfile,
@@ -42,6 +58,12 @@ class SessionState {
       cvrRatio: cvrRatio ?? this.cvrRatio,
       audioSource: audioSource ?? this.audioSource,
       isComplete: isComplete ?? this.isComplete,
+      waveform: waveform ?? this.waveform,
+      decisionTrace: decisionTrace ?? this.decisionTrace,
+      questionnaireAnswers: questionnaireAnswers ?? this.questionnaireAnswers,
+      questionnaireState: questionnaireState ?? this.questionnaireState,
+      questionnaireEvaluation:
+          questionnaireEvaluation ?? this.questionnaireEvaluation,
     );
   }
 }
@@ -53,12 +75,25 @@ class SessionNotifier extends StateNotifier<SessionState> {
     state = state.copyWith(childProfile: profile);
   }
 
+  void setQuestionnaire(
+    Map<String, MyChildAnswer> answers,
+    MyChildEvaluation evaluation,
+  ) {
+    state = state.copyWith(
+      questionnaireAnswers: answers,
+      questionnaireState: evaluation.state,
+      questionnaireEvaluation: evaluation,
+    );
+  }
+
   void setResult({
     required BiomarkerResult result,
     required double vttlMs,
     required double pfvStd,
     required double cvrRatio,
     required String audioSource,
+    List<double> waveform = const [],
+    List<Map<String, dynamic>> decisionTrace = const [],
   }) {
     state = state.copyWith(
       result: result,
@@ -66,6 +101,8 @@ class SessionNotifier extends StateNotifier<SessionState> {
       pfvStd: pfvStd,
       cvrRatio: cvrRatio,
       audioSource: audioSource,
+      waveform: waveform,
+      decisionTrace: decisionTrace,
     );
   }
 
@@ -81,6 +118,8 @@ class SessionNotifier extends StateNotifier<SessionState> {
       workerName: workerName,
       childName: profile.childName,
       childAgeMonths: profile.childAgeMonths,
+      childBirthDate: profile.birthDate,
+      gestationalWeeks: profile.gestationalWeeks,
       sessionDate: DateTime.now(),
       riskLevel: result.riskLevel,
       vttlMs: state.vttlMs,
@@ -89,8 +128,24 @@ class SessionNotifier extends StateNotifier<SessionState> {
       vttlFlagged: result.vttlFlagged,
       pfvFlagged: result.pfvFlagged,
       cvrFlagged: result.cvrFlagged,
+      pfvRawSemitoneSD: result.pfvRawSemitoneSD,
+      pfvAgeZScore: result.pfvAgeZScore,
+      pfvFramesUsed: result.pfvFramesUsed,
+      pfvInsufficientData: result.pfvInsufficientData,
+      pfvUnit: 'semitones',
       audioSourceUsed: state.audioSource,
       districtCode: profile.districtCode,
+      childUuid: profile.childUuid,
+      questionnaireRunId: const Uuid().v4(),
+      consentId: const Uuid().v4(),
+      questionnaireState: state.questionnaireState?.name,
+      questionnaireAnswers: state.questionnaireAnswers.map(
+        (key, value) => MapEntry(key, value.name),
+      ),
+      questionnaireAnalysis:
+          state.questionnaireEvaluation?.toJson() ?? const {},
+      decisionTrace: state.decisionTrace,
+      waveform: state.waveform,
     );
 
     await SessionRepository().saveSession(session);
@@ -102,8 +157,9 @@ class SessionNotifier extends StateNotifier<SessionState> {
   }
 }
 
-final sessionProvider =
-    StateNotifierProvider<SessionNotifier, SessionState>((ref) {
+final sessionProvider = StateNotifierProvider<SessionNotifier, SessionState>((
+  ref,
+) {
   return SessionNotifier();
 });
 

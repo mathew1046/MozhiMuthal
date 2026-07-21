@@ -1,12 +1,14 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
+import 'package:flutter/foundation.dart';
 import '../models/session_model.dart';
 
 class DatabaseHelper {
   static Database? _database;
   static const _dbName = 'mozhimuthal.db';
-  static const _dbVersion = 1;
+  static const _dbVersion = 5;
   static const _tableSessions = 'sessions';
+  static final List<SessionModel> _webSessions = [];
 
   static Future<Database> get database async {
     _database ??= await _initDatabase();
@@ -21,6 +23,54 @@ class DatabaseHelper {
       path,
       version: _dbVersion,
       onCreate: _onCreate,
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          for (final sql in const [
+            'ALTER TABLE sessions ADD COLUMN child_uuid TEXT',
+            "ALTER TABLE sessions ADD COLUMN analysis_status TEXT NOT NULL DEFAULT 'COMPLETE'",
+            "ALTER TABLE sessions ADD COLUMN quality_reasons TEXT NOT NULL DEFAULT ''",
+            'ALTER TABLE sessions ADD COLUMN transition_count INTEGER NOT NULL DEFAULT 0',
+            'ALTER TABLE sessions ADD COLUMN voiced_seconds REAL NOT NULL DEFAULT 0',
+            'ALTER TABLE sessions ADD COLUMN child_voiced_seconds REAL NOT NULL DEFAULT 0',
+            'ALTER TABLE sessions ADD COLUMN demo_session INTEGER NOT NULL DEFAULT 0',
+            'ALTER TABLE sessions ADD COLUMN retry_count INTEGER NOT NULL DEFAULT 0',
+          ]) {
+            await db.execute(sql);
+          }
+        }
+        if (oldVersion < 3) {
+          await db.execute(
+            'ALTER TABLE sessions ADD COLUMN questionnaire_state TEXT',
+          );
+          await db.execute(
+            "ALTER TABLE sessions ADD COLUMN questionnaire_answers TEXT NOT NULL DEFAULT ''",
+          );
+        }
+        if (oldVersion < 4) {
+          for (final sql in const [
+            'ALTER TABLE sessions ADD COLUMN child_birth_date TEXT',
+            'ALTER TABLE sessions ADD COLUMN gestational_weeks INTEGER',
+            'ALTER TABLE sessions ADD COLUMN questionnaire_run_id TEXT',
+            'ALTER TABLE sessions ADD COLUMN consent_id TEXT',
+            "ALTER TABLE sessions ADD COLUMN questionnaire_analysis TEXT NOT NULL DEFAULT '{}'",
+            "ALTER TABLE sessions ADD COLUMN decision_trace TEXT NOT NULL DEFAULT '[]'",
+            "ALTER TABLE sessions ADD COLUMN waveform TEXT NOT NULL DEFAULT '[]'",
+          ]) {
+            await db.execute(sql);
+          }
+        }
+        if (oldVersion < 5) {
+          for (final sql in const [
+            'ALTER TABLE sessions ADD COLUMN pfv_raw_semitone_sd REAL',
+            'ALTER TABLE sessions ADD COLUMN pfv_age_z_score REAL',
+            'ALTER TABLE sessions ADD COLUMN pfv_frames_used INTEGER NOT NULL DEFAULT 0',
+            'ALTER TABLE sessions ADD COLUMN pfv_insufficient_data INTEGER NOT NULL DEFAULT 1',
+            "ALTER TABLE sessions ADD COLUMN pfv_unit TEXT NOT NULL DEFAULT 'hz_legacy'",
+          ]) {
+            await db.execute(sql);
+          }
+        }
+      },
     );
   }
 
@@ -32,6 +82,8 @@ class DatabaseHelper {
         worker_name TEXT,
         child_name TEXT,
         child_age_months INTEGER NOT NULL,
+        child_birth_date TEXT,
+        gestational_weeks INTEGER,
         session_date TEXT NOT NULL,
         risk_level TEXT NOT NULL,
         vttl_ms REAL,
@@ -39,10 +91,30 @@ class DatabaseHelper {
         cvr_ratio REAL,
         vttl_flagged INTEGER,
         pfv_flagged INTEGER,
+        pfv_raw_semitone_sd REAL,
+        pfv_age_z_score REAL,
+        pfv_frames_used INTEGER NOT NULL DEFAULT 0,
+        pfv_insufficient_data INTEGER NOT NULL DEFAULT 1,
+        pfv_unit TEXT NOT NULL DEFAULT 'hz_legacy',
         cvr_flagged INTEGER,
         audio_source TEXT,
         synced INTEGER DEFAULT 0,
-        district_code TEXT
+        district_code TEXT,
+        child_uuid TEXT,
+        analysis_status TEXT NOT NULL DEFAULT 'COMPLETE',
+        quality_reasons TEXT NOT NULL DEFAULT '',
+        transition_count INTEGER NOT NULL DEFAULT 0,
+        voiced_seconds REAL NOT NULL DEFAULT 0,
+        child_voiced_seconds REAL NOT NULL DEFAULT 0,
+        demo_session INTEGER NOT NULL DEFAULT 0,
+        retry_count INTEGER NOT NULL DEFAULT 0
+        ,questionnaire_state TEXT
+        ,questionnaire_answers TEXT NOT NULL DEFAULT ''
+        ,questionnaire_run_id TEXT
+        ,consent_id TEXT
+        ,questionnaire_analysis TEXT NOT NULL DEFAULT '{}'
+        ,decision_trace TEXT NOT NULL DEFAULT '[]'
+        ,waveform TEXT NOT NULL DEFAULT '[]'
       )
     ''');
   }
@@ -50,13 +122,27 @@ class DatabaseHelper {
   // ── CRUD ──
 
   static Future<int> insertSession(SessionModel session) async {
+    if (kIsWeb) {
+      _webSessions.removeWhere((item) => item.id == session.id);
+      _webSessions.add(session);
+      return 1;
+    }
     final db = await database;
-    return db.insert(_tableSessions, session.toMap(),
-        conflictAlgorithm: ConflictAlgorithm.replace);
+    return db.insert(
+      _tableSessions,
+      session.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
 
   static Future<List<SessionModel>> getRecentSessions({int limit = 20}) async {
-    final db = await database;
+    if (kIsWeb) {
+      final sessions = [..._webSessions]
+        ..sort((a, b) => b.sessionDate.compareTo(a.sessionDate));
+      return sessions.take(limit).toList();
+    }
+    final db = await _databaseOrNull();
+    if (db == null) return const [];
     final maps = await db.query(
       _tableSessions,
       orderBy: 'session_date DESC',
@@ -65,8 +151,22 @@ class DatabaseHelper {
     return maps.map((m) => SessionModel.fromMap(m)).toList();
   }
 
+  static Future<List<SessionModel>> getAllSessions() async {
+    if (kIsWeb) {
+      final sessions = [..._webSessions]
+        ..sort((a, b) => b.sessionDate.compareTo(a.sessionDate));
+      return sessions;
+    }
+    final db = await _databaseOrNull();
+    if (db == null) return const [];
+    final maps = await db.query(_tableSessions, orderBy: 'session_date DESC');
+    return maps.map((m) => SessionModel.fromMap(m)).toList();
+  }
+
   static Future<List<SessionModel>> getUnsyncedSessions() async {
-    final db = await database;
+    if (kIsWeb) return _webSessions.where((s) => !s.syncedToCloud).toList();
+    final db = await _databaseOrNull();
+    if (db == null) return const [];
     final maps = await db.query(
       _tableSessions,
       where: 'synced = ?',
@@ -76,6 +176,7 @@ class DatabaseHelper {
   }
 
   static Future<int> markSynced(String sessionId) async {
+    if (kIsWeb) return 1;
     final db = await database;
     return db.update(
       _tableSessions,
@@ -86,9 +187,20 @@ class DatabaseHelper {
   }
 
   static Future<int> getUnsyncedCount() async {
-    final db = await database;
+    if (kIsWeb) return 0;
+    final db = await _databaseOrNull();
+    if (db == null) return 0;
     final result = await db.rawQuery(
-        'SELECT COUNT(*) as count FROM $_tableSessions WHERE synced = 0');
+      'SELECT COUNT(*) as count FROM $_tableSessions WHERE synced = 0',
+    );
     return Sqflite.firstIntValue(result) ?? 0;
+  }
+
+  static Future<Database?> _databaseOrNull() async {
+    try {
+      return await database;
+    } catch (_) {
+      return null;
+    }
   }
 }
