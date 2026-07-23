@@ -4,7 +4,7 @@ import 'package:mozhimuthal/data/models/biomarker_result.dart';
 import 'package:mozhimuthal/domain/my_child_engine.dart';
 
 void main() {
-  test('partial audio features still produce a screening result', () {
+  test('partial audio features do not produce a clinical screening result', () {
     final result = ScoringEngine.score(
       SessionFeatures(
         vttlMs: 0,
@@ -15,9 +15,10 @@ void main() {
         qualityReasons: const ['too quiet'],
       ),
     );
-    expect(result.incomplete, isFalse);
+    expect(result.incomplete, isTrue);
     expect(result.riskLabel, 'YELLOW');
     expect(result.riskLevel, RiskLevel.yellow);
+    expect(result.qualityReasons, ['too quiet']);
   });
 
   test('a two-sided PFV flag participates in the combined risk score', () {

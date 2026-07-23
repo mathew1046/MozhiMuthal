@@ -14,6 +14,11 @@ class SessionState {
   final double pfvStd;
   final double cvrRatio;
   final String audioSource;
+  final String analysisStatus;
+  final List<String> qualityReasons;
+  final int transitionCount;
+  final double voicedSeconds;
+  final double childVoicedSeconds;
   final bool isComplete;
   final List<double> waveform;
   final List<Map<String, dynamic>> decisionTrace;
@@ -28,6 +33,11 @@ class SessionState {
     this.pfvStd = 0,
     this.cvrRatio = 0,
     this.audioSource = 'MOCK',
+    this.analysisStatus = 'COMPLETE',
+    this.qualityReasons = const [],
+    this.transitionCount = 0,
+    this.voicedSeconds = 0,
+    this.childVoicedSeconds = 0,
     this.isComplete = false,
     this.waveform = const [],
     this.decisionTrace = const [],
@@ -43,6 +53,11 @@ class SessionState {
     double? pfvStd,
     double? cvrRatio,
     String? audioSource,
+    String? analysisStatus,
+    List<String>? qualityReasons,
+    int? transitionCount,
+    double? voicedSeconds,
+    double? childVoicedSeconds,
     bool? isComplete,
     List<double>? waveform,
     List<Map<String, dynamic>>? decisionTrace,
@@ -57,6 +72,11 @@ class SessionState {
       pfvStd: pfvStd ?? this.pfvStd,
       cvrRatio: cvrRatio ?? this.cvrRatio,
       audioSource: audioSource ?? this.audioSource,
+      analysisStatus: analysisStatus ?? this.analysisStatus,
+      qualityReasons: qualityReasons ?? this.qualityReasons,
+      transitionCount: transitionCount ?? this.transitionCount,
+      voicedSeconds: voicedSeconds ?? this.voicedSeconds,
+      childVoicedSeconds: childVoicedSeconds ?? this.childVoicedSeconds,
       isComplete: isComplete ?? this.isComplete,
       waveform: waveform ?? this.waveform,
       decisionTrace: decisionTrace ?? this.decisionTrace,
@@ -92,6 +112,11 @@ class SessionNotifier extends StateNotifier<SessionState> {
     required double pfvStd,
     required double cvrRatio,
     required String audioSource,
+    String analysisStatus = 'COMPLETE',
+    List<String> qualityReasons = const [],
+    int transitionCount = 0,
+    double voicedSeconds = 0,
+    double childVoicedSeconds = 0,
     List<double> waveform = const [],
     List<Map<String, dynamic>> decisionTrace = const [],
   }) {
@@ -101,6 +126,11 @@ class SessionNotifier extends StateNotifier<SessionState> {
       pfvStd: pfvStd,
       cvrRatio: cvrRatio,
       audioSource: audioSource,
+      analysisStatus: analysisStatus,
+      qualityReasons: qualityReasons,
+      transitionCount: transitionCount,
+      voicedSeconds: voicedSeconds,
+      childVoicedSeconds: childVoicedSeconds,
       waveform: waveform,
       decisionTrace: decisionTrace,
     );
@@ -136,6 +166,11 @@ class SessionNotifier extends StateNotifier<SessionState> {
       audioSourceUsed: state.audioSource,
       districtCode: profile.districtCode,
       childUuid: profile.childUuid,
+      analysisStatus: state.analysisStatus,
+      qualityReasons: state.qualityReasons,
+      transitionCount: state.transitionCount,
+      voicedSeconds: state.voicedSeconds,
+      childVoicedSeconds: state.childVoicedSeconds,
       questionnaireRunId: const Uuid().v4(),
       consentId: const Uuid().v4(),
       questionnaireState: state.questionnaireState?.name,

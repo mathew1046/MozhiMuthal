@@ -16,7 +16,8 @@ class ElicitationScreen extends StatefulWidget {
   State<ElicitationScreen> createState() => _ElicitationScreenState();
 }
 
-class _ElicitationScreenState extends State<ElicitationScreen> {
+class _ElicitationScreenState extends State<ElicitationScreen>
+    with WidgetsBindingObserver {
   int _currentProtocol = 0;
   int _elapsed = 0;
   bool _recording = false;
@@ -53,6 +54,7 @@ class _ElicitationScreenState extends State<ElicitationScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _waveformSubscription = AudioPipelineService.waveform.listen((level) {
       if (!mounted) return;
       setState(() {
@@ -77,9 +79,28 @@ class _ElicitationScreenState extends State<ElicitationScreen> {
     } on AudioPipelineException catch (error) {
       if (mounted) setState(() => _error = error.message);
     } on PlatformException catch (error) {
-      if (mounted)
+      if (mounted) {
         setState(() => _error = error.message ?? 'Microphone unavailable');
+      }
     }
+  }
+
+  Future<void> _restartRecording() async {
+    // A native recording cannot be safely resumed after the microphone was
+    // interrupted. Start the guided sequence again so every retained sample
+    // belongs to the same complete session.
+    await AudioPipelineService.stopSession();
+    if (!mounted) return;
+    setState(() {
+      _currentProtocol = 0;
+      _elapsed = 0;
+      _recording = false;
+      _reviewReady = false;
+      _hasReplayCopy = false;
+      _error = null;
+      _waveform.clear();
+    });
+    await _startRecording();
   }
 
   void _tick() {
@@ -99,6 +120,7 @@ class _ElicitationScreenState extends State<ElicitationScreen> {
       setState(() {
         _currentProtocol++;
         _elapsed = 0;
+        _recording = true;
       });
       _tick();
     } else {
@@ -118,8 +140,9 @@ class _ElicitationScreenState extends State<ElicitationScreen> {
       await AudioPipelineService.replayTemporaryRecording();
       if (mounted) setState(() => _hasReplayCopy = false);
     } on PlatformException catch (error) {
-      if (mounted)
+      if (mounted) {
         setState(() => _error = error.message ?? 'Could not replay recording');
+      }
     } finally {
       if (mounted) setState(() => _isReplaying = false);
     }
@@ -131,8 +154,30 @@ class _ElicitationScreenState extends State<ElicitationScreen> {
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (!_recording ||
+        (state != AppLifecycleState.inactive &&
+            state != AppLifecycleState.paused &&
+            state != AppLifecycleState.detached)) {
+      return;
+    }
+
+    // Android stops the recorder when the activity is interrupted. Do not let
+    // the visible timer continue and imply that the capture is still usable.
+    setState(() {
+      _recording = false;
+      _error = 'Recording was interrupted. Please restart the activities.';
+    });
+    unawaited(AudioPipelineService.stopSession());
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _waveformSubscription?.cancel();
+    // Route disposal does not destroy MainActivity, so explicitly release the
+    // microphone instead of relying on Android activity teardown.
+    unawaited(AudioPipelineService.stopSession());
     AudioPipelineService.deleteTemporaryRecording();
     super.dispose();
   }
@@ -187,6 +232,17 @@ class _ElicitationScreenState extends State<ElicitationScreen> {
                     ],
                   ),
                 ),
+                if (!_reviewReady) ...[
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: _recording ? null : _restartRecording,
+                      icon: const Icon(Icons.restart_alt_rounded),
+                      label: const Text('Restart activities'),
+                    ),
+                  ),
+                ],
               ],
               const SizedBox(height: 14),
               if (!_reviewReady && !_canProceed)

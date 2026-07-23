@@ -18,6 +18,8 @@ class _ProcessingScreenState extends ConsumerState<ProcessingScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   int _phase = 0;
+  String? _failureMessage;
+  List<String> _qualityReasons = const [];
 
   static const _phases = [
     ('Filtering noise', Icons.tune_rounded),
@@ -45,51 +47,68 @@ class _ProcessingScreenState extends ConsumerState<ProcessingScreen>
       setState(() => _phase = index);
     }
 
-    Map<String, dynamic> rawResult;
     try {
-      rawResult = await AudioPipelineService.runPipeline(
+      final rawResult = await AudioPipelineService.runPipeline(
         childAgeMonths: ageMonths,
       );
-    } on AudioPipelineException {
-      rawResult = _fallbackResult(ageMonths);
-    }
-    final features = SessionFeatures.fromJson(rawResult);
-    final acousticResult = ScoringEngine.score(features);
-    final result = ScoringEngine.combineWithQuestionnaire(
-      acousticResult,
-      session.questionnaireState,
-    );
-    ref
-        .read(sessionProvider.notifier)
-        .setResult(
-          result: result,
-          vttlMs: features.vttlMs,
-          pfvStd: features.pfvStd,
-          cvrRatio: features.cvrRatio,
-          audioSource: features.audioSourceUsed,
-          waveform: features.waveform,
-          decisionTrace: features.decisionTrace,
+      final features = SessionFeatures.fromJson(rawResult);
+      if (features.analysisStatus != 'COMPLETE') {
+        _showRetry(
+          message: features.analysisStatus == 'FAILED'
+              ? 'We could not analyse this recording. Please record the activities again.'
+              : 'This recording needs a little more clear child speech before it can be screened.',
+          qualityReasons: features.qualityReasons,
         );
-    if (mounted) context.go('/result');
+        return;
+      }
+
+      final acousticResult = ScoringEngine.score(features);
+      final result = ScoringEngine.combineWithQuestionnaire(
+        acousticResult,
+        session.questionnaireState,
+      );
+      ref
+          .read(sessionProvider.notifier)
+          .setResult(
+            result: result,
+            vttlMs: features.vttlMs,
+            pfvStd: features.pfvStd,
+            cvrRatio: features.cvrRatio,
+            audioSource: features.audioSourceUsed,
+            analysisStatus: features.analysisStatus,
+            qualityReasons: features.qualityReasons,
+            transitionCount: features.transitionCount,
+            voicedSeconds: features.voicedSeconds,
+            childVoicedSeconds: features.childVoicedSeconds,
+            waveform: features.waveform,
+            decisionTrace: features.decisionTrace,
+          );
+      if (mounted) context.go('/result');
+    } on AudioPipelineException catch (error) {
+      _showRetry(
+        message:
+            'We could not analyse this recording. Please record the activities again.',
+        qualityReasons: [error.message],
+      );
+    } catch (_) {
+      _showRetry(
+        message:
+            'We could not read this recording. Please record the activities again.',
+      );
+    }
   }
 
-  Map<String, dynamic> _fallbackResult(int ageMonths) => {
-    'analysis_status': 'COMPLETE',
-    'child_age_months': ageMonths,
-    'audio_source_used': 'ON_DEVICE',
-    'vttl_ms': 0.0,
-    'pfv_std': 0.0,
-    'pfv': {
-      'raw_pfv_semitone_sd': null,
-      'age_z_score': null,
-      'is_flagged': false,
-      'frames_used': 0,
-      'insufficient_data': true,
-    },
-    'cvr_ratio': 0.0,
-    'waveform': <double>[],
-    'decision_trace': <Map<String, dynamic>>[],
-  };
+  void _showRetry({
+    required String message,
+    List<String> qualityReasons = const [],
+  }) {
+    if (!mounted) return;
+    _controller.stop();
+    setState(() {
+      _failureMessage = message;
+      _qualityReasons = qualityReasons;
+    });
+  }
 
   @override
   void dispose() {
@@ -100,6 +119,60 @@ class _ProcessingScreenState extends ConsumerState<ProcessingScreen>
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final failureMessage = _failureMessage;
+    if (failureMessage != null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Recording needs to be repeated')),
+        body: SafeArea(
+          top: false,
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(28),
+              child: AppSurface(
+                color: scheme.errorContainer,
+                borderColor: scheme.error,
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Icon(Icons.mic_off_outlined, size: 48, color: scheme.error),
+                    const SizedBox(height: 16),
+                    Text(
+                      'No screening result was created',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(failureMessage, textAlign: TextAlign.center),
+                    if (_qualityReasons.isNotEmpty) ...[
+                      const SizedBox(height: 16),
+                      ..._qualityReasons.map(
+                        (reason) => Padding(
+                          padding: const EdgeInsets.only(bottom: 6),
+                          child: Text('• $reason'),
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 20),
+                    FilledButton.icon(
+                      onPressed: () => context.go('/elicitation'),
+                      icon: const Icon(Icons.restart_alt_rounded),
+                      label: const Text('Record activities again'),
+                    ),
+                    TextButton(
+                      onPressed: () => context.go('/'),
+                      child: const Text('Return home'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       body: SafeArea(
         child: Center(

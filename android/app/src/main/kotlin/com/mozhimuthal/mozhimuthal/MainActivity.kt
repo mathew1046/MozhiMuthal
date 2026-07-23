@@ -10,6 +10,7 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.EventChannel
 import java.io.File
+import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.Executors
 import kotlin.math.sqrt
 
@@ -21,7 +22,8 @@ class MainActivity : FlutterActivity() {
     private val pfvAnalyzer = PfvAnalyzer()
     private val extractor = FeatureExtractor(pfvAnalyzer)
     private val executor = Executors.newSingleThreadExecutor()
-    private var processing = false
+    @Volatile private var processing = false
+    private val recordingGeneration = AtomicInteger(0)
     private var modelError: String? = null
     private val aggregate = Aggregate(pfvAnalyzer)
     private var waveformSink: EventChannel.EventSink? = null
@@ -98,14 +100,20 @@ class MainActivity : FlutterActivity() {
         if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             result.error("ERR_PERMISSION", "Microphone permission is required", null); return
         }
+        if (processing) { result.error("ERR_ALREADY_RECORDING", "A recording is already in progress", null); return }
         if (!recorder.startRecording()) { result.error("ERR_MIC_UNAVAILABLE", "Could not initialize microphone", null); return }
         aggregate.reset(); modelError = null; processing = true
+        val generation = recordingGeneration.incrementAndGet()
         executor.execute {
             val readBuffer = ShortArray(1_600) // 100 ms: responsive waveform updates
             val chunk = ShortArray(160_000)
             var buffered = 0
-            while (processing) {
+            while (processing && generation == recordingGeneration.get()) {
                 val read = recorder.read(readBuffer, 0, readBuffer.size)
+                // `stop()` can release the recorder while read is blocked, and
+                // a retry can start a new generation before it returns. Never
+                // let an old worker append to or analyse the new recording.
+                if (!processing || generation != recordingGeneration.get()) break
                 if (read <= 0) continue
                 try {
                     recorder.appendToTemporaryRecording(readBuffer, read)
@@ -141,7 +149,11 @@ class MainActivity : FlutterActivity() {
         result.success(true)
     }
 
-    private fun stop() { processing = false; recorder.stopRecording() }
+    private fun stop() {
+        processing = false
+        recordingGeneration.incrementAndGet()
+        recorder.stopRecording()
+    }
 
     private fun replay(result: MethodChannel.Result) {
         if (!recorder.hasTemporaryRecording()) { result.error("ERR_NO_RECORDING", "No recording available to replay", null); return }
@@ -157,7 +169,13 @@ class MainActivity : FlutterActivity() {
         executor.execute {
             aggregate.ageMonths = ageMonths
             runOnUiThread {
-                result.success(aggregate.payload(recorder.audioSourceUsed, ageMonths))
+                result.success(
+                    aggregate.payload(
+                        recorder.audioSourceUsed,
+                        ageMonths,
+                        modelError,
+                    ),
+                )
             }
         }
     }
@@ -186,6 +204,13 @@ class MainActivity : FlutterActivity() {
     }
     private var runnerReady = false
 
+    override fun onPause() {
+        // The app must not keep the microphone active when the activity is
+        // interrupted (for example, by a call or when sent to the background).
+        stop()
+        super.onPause()
+    }
+
     override fun onDestroy() { stop(); recorder.deleteTemporaryRecording(); executor.shutdownNow(); runner.close(); tts?.shutdown(); super.onDestroy() }
 
     companion object {
@@ -208,15 +233,22 @@ class MainActivity : FlutterActivity() {
             }
             decisionTrace += mapOf("start_ms" to startMs, "end_ms" to recordedMs, "vttl_ms" to f.vttl_ms, "pfv_frames" to f.pfv_frames.size, "cvr_ratio" to f.cvr_ratio)
         }
-        fun payload(source: String, age: Int): Map<String, Any?> {
+        fun payload(source: String, age: Int, analysisFailure: String?): Map<String, Any?> {
             val reasons = mutableListOf<String>()
+            if (analysisFailure != null) {
+                reasons += "Audio analysis could not be completed. Please repeat the recording."
+            }
             if (voicedMs < 20_000) reasons += "At least 20 seconds of voiced audio is required"
             if (childMs < 5_000) reasons += "At least 5 seconds of confident child speech is required"
             if (transitions < 3) reasons += "At least 3 adult-to-child transitions are required"
             val valid = reasons.isEmpty() && vttls.isNotEmpty()
             val median = vttls.sorted().let { if (it.isEmpty()) 0.0 else it[it.size / 2] }
             val pfv = pfvAnalyzer.analyzeFrames(pfvFrames, age)
-            return mapOf("analysis_status" to if (valid) "COMPLETE" else "INCOMPLETE",
+            return mapOf("analysis_status" to when {
+                analysisFailure != null -> "FAILED"
+                valid -> "COMPLETE"
+                else -> "INCOMPLETE"
+            },
                 "quality_reasons" to reasons, "voiced_seconds" to voicedMs / 1000.0,
                 "child_voiced_seconds" to childMs / 1000.0, "transition_count" to transitions,
                 "vttl_ms" to median,

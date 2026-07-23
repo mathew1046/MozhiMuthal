@@ -102,9 +102,12 @@ class ScoringEngine {
   ScoringEngine._();
 
   static BiomarkerResult score(SessionFeatures f) {
-    // Score the features that were produced even when the native pipeline
-    // reports a partial analysis. The result screen stays focused on the
-    // available screening signals rather than an incomplete-state message.
+    // Quality failures are not clinical findings. Callers should direct the
+    // worker to retry instead of presenting zero/partial features as a score.
+    if (f.analysisStatus != 'COMPLETE') {
+      return BiomarkerResult.incomplete(f.qualityReasons);
+    }
+
     final bool vttlFlagged = f.vttlMs > AppConstants.vttlThresholdMs;
 
     final pfv = f.pfv;
