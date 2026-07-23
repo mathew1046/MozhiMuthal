@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:uuid/uuid.dart';
 
 import '../../../core/constants.dart';
 import '../../../data/models/child_profile.dart';
@@ -54,7 +53,12 @@ class _ChildProfileScreenState extends ConsumerState<ChildProfileScreen> {
         .read(sessionProvider.notifier)
         .setChildProfile(
           ChildProfile(
-            childUuid: const Uuid().v4(),
+            childUuid: ChildProfile.stableUuid(
+              childName: _nameController.text,
+              birthDate: _birthDate,
+              anganwadiId: _anganwadiController.text,
+              districtCode: _districtCode,
+            ),
             childName: _nameController.text.trim().isEmpty
                 ? null
                 : _nameController.text.trim(),

@@ -54,7 +54,11 @@ class _ProcessingScreenState extends ConsumerState<ProcessingScreen>
       rawResult = _fallbackResult(ageMonths);
     }
     final features = SessionFeatures.fromJson(rawResult);
-    final result = ScoringEngine.score(features);
+    final acousticResult = ScoringEngine.score(features);
+    final result = ScoringEngine.combineWithQuestionnaire(
+      acousticResult,
+      session.questionnaireState,
+    );
     ref
         .read(sessionProvider.notifier)
         .setResult(

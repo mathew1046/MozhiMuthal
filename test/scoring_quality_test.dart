@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mozhimuthal/domain/scoring_engine.dart';
 import 'package:mozhimuthal/data/models/biomarker_result.dart';
+import 'package:mozhimuthal/domain/my_child_engine.dart';
 
 void main() {
   test('partial audio features still produce a screening result', () {
@@ -61,5 +62,40 @@ void main() {
     expect(result.pfvInsufficientData, isTrue);
     expect(result.pfvFlagged, isFalse);
     expect(result.riskLevel, RiskLevel.green);
+  });
+
+  test('questionnaire concerns escalate the final screening result', () {
+    const acoustic = BiomarkerResult(
+      riskLevel: RiskLevel.green,
+      vttlFlagged: false,
+      pfvFlagged: false,
+      cvrFlagged: false,
+      malayalamExplanation: 'Acoustic result',
+    );
+
+    final combined = ScoringEngine.combineWithQuestionnaire(
+      acoustic,
+      MyChildState.warning,
+    );
+
+    expect(combined.riskLevel, RiskLevel.red);
+    expect(combined.riskLabel, 'RED');
+  });
+
+  test('questionnaire cannot downgrade a higher acoustic concern', () {
+    const acoustic = BiomarkerResult(
+      riskLevel: RiskLevel.red,
+      vttlFlagged: true,
+      pfvFlagged: true,
+      cvrFlagged: false,
+      malayalamExplanation: 'Acoustic result',
+    );
+
+    final combined = ScoringEngine.combineWithQuestionnaire(
+      acoustic,
+      MyChildState.normal,
+    );
+
+    expect(combined.riskLevel, RiskLevel.red);
   });
 }

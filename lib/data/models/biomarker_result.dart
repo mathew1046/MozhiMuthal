@@ -42,6 +42,25 @@ class BiomarkerResult {
       malayalamExplanation =
           'Incomplete—repeat recording. ഇത് രോഗനിർണ്ണയം അല്ല.';
 
+  BiomarkerResult copyWith({
+    RiskLevel? riskLevel,
+    String? malayalamExplanation,
+  }) {
+    return BiomarkerResult(
+      riskLevel: riskLevel ?? this.riskLevel,
+      vttlFlagged: vttlFlagged,
+      pfvFlagged: pfvFlagged,
+      cvrFlagged: cvrFlagged,
+      pfvRawSemitoneSD: pfvRawSemitoneSD,
+      pfvAgeZScore: pfvAgeZScore,
+      pfvFramesUsed: pfvFramesUsed,
+      pfvInsufficientData: pfvInsufficientData,
+      malayalamExplanation: malayalamExplanation ?? this.malayalamExplanation,
+      incomplete: incomplete,
+      qualityReasons: qualityReasons,
+    );
+  }
+
   int get flagCount =>
       [vttlFlagged, pfvFlagged, cvrFlagged].where((f) => f).length;
 

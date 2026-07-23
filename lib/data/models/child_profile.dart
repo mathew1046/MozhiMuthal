@@ -1,4 +1,5 @@
 import '../../core/constants.dart';
+import 'package:uuid/uuid.dart';
 
 class ChildProfile {
   final String childUuid;
@@ -22,6 +23,31 @@ class ChildProfile {
   bool get isValidAge =>
       childAgeMonths >= AppConstants.minAgeMonths &&
       childAgeMonths <= AppConstants.maxAgeMonths;
+
+  /// Produces the same UUID whenever the same child details are entered for a
+  /// repeat screening. The age is deliberately excluded because it changes
+  /// over time; date of birth is the stable value used instead.
+  static String stableUuid({
+    required String? childName,
+    required DateTime birthDate,
+    required String anganwadiId,
+    required String districtCode,
+  }) {
+    String normalize(String? value) => value?.trim().toLowerCase() ?? '';
+    String twoDigits(int value) => value.toString().padLeft(2, '0');
+    final birthDateKey =
+        '${birthDate.year.toString().padLeft(4, '0')}-${twoDigits(birthDate.month)}-${twoDigits(birthDate.day)}';
+    final identity = [
+      normalize(childName),
+      birthDateKey,
+      normalize(anganwadiId),
+      normalize(districtCode),
+    ].join('|');
+    return const Uuid().v5(
+      Namespace.url.value,
+      'mozhimuthal-child-v1|$identity',
+    );
+  }
 
   Map<String, dynamic> toMap() => {
     'child_uuid': childUuid,

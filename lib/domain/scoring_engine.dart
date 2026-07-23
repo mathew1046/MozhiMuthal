@@ -1,5 +1,6 @@
 import '../data/models/biomarker_result.dart';
 import '../core/constants.dart';
+import 'my_child_engine.dart';
 
 /// Structured PFV output produced by the Android frame-level pitch analyzer.
 class PfvScreeningResult {
@@ -136,6 +137,33 @@ class ScoringEngine {
       pfvInsufficientData: pfv?.insufficientData ?? true,
       cvrFlagged: cvrFlagged,
       malayalamExplanation: _getExplanation(level),
+    );
+  }
+
+  /// Escalate (but never downgrade) the acoustic screening outcome with the
+  /// parent's developmental questionnaire. The combined result is the one
+  /// saved and used to decide whether a referral is offered.
+  static BiomarkerResult combineWithQuestionnaire(
+    BiomarkerResult acousticResult,
+    MyChildState? questionnaireState,
+  ) {
+    if (questionnaireState == null) return acousticResult;
+
+    final combined = CombinedScreeningResult.combine(
+      questionnaire: questionnaireState,
+      acousticTier: acousticResult.riskLabel,
+      audioQualityPassed: !acousticResult.incomplete,
+    );
+    final riskLevel = switch (combined.tier) {
+      'RED' => RiskLevel.red,
+      'YELLOW' => RiskLevel.yellow,
+      _ => RiskLevel.green,
+    };
+
+    if (riskLevel == acousticResult.riskLevel) return acousticResult;
+    return acousticResult.copyWith(
+      riskLevel: riskLevel,
+      malayalamExplanation: _getExplanation(riskLevel),
     );
   }
 
