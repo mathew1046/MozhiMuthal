@@ -99,4 +99,20 @@ void main() {
 
     expect(combined.riskLevel, RiskLevel.red);
   });
+
+  test('temporary voice-test skip produces a questionnaire-only result', () {
+    final result = ScoringEngine.questionnaireOnly(MyChildState.warning);
+
+    expect(result.riskLevel, RiskLevel.red);
+    expect(result.vttlFlagged, isFalse);
+    expect(result.pfvFlagged, isFalse);
+    expect(result.cvrFlagged, isFalse);
+    expect(result.incomplete, isFalse);
+  });
+
+  test('voice-test skip requires a completed questionnaire', () {
+    final result = ScoringEngine.questionnaireOnly(null);
+
+    expect(result.incomplete, isTrue);
+  });
 }

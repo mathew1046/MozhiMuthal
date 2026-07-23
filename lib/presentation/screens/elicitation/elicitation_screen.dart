@@ -27,6 +27,7 @@ class _ElicitationScreenState extends State<ElicitationScreen>
   bool _reviewReady = false;
   bool _hasReplayCopy = false;
   bool _isReplaying = false;
+  Timer? _protocolTimer;
 
   static const _protocols = [
     ProtocolInfo(
@@ -75,7 +76,7 @@ class _ElicitationScreenState extends State<ElicitationScreen>
         _elapsed = 0;
         _error = null;
       });
-      _tick();
+      _startProtocolTimer();
     } on AudioPipelineException catch (error) {
       if (mounted) setState(() => _error = error.message);
     } on PlatformException catch (error) {
@@ -89,6 +90,7 @@ class _ElicitationScreenState extends State<ElicitationScreen>
     // A native recording cannot be safely resumed after the microphone was
     // interrupted. Start the guided sequence again so every retained sample
     // belongs to the same complete session.
+    _stopProtocolTimer();
     await AudioPipelineService.stopSession();
     if (!mounted) return;
     setState(() {
@@ -103,16 +105,27 @@ class _ElicitationScreenState extends State<ElicitationScreen>
     await _startRecording();
   }
 
-  void _tick() {
-    Future.delayed(const Duration(seconds: 1), () {
-      if (!mounted || !_recording) return;
+  void _startProtocolTimer() {
+    // There must be exactly one timer for the active activity. The previous
+    // delayed-tick implementation could leave an old tick alive when Next was
+    // pressed, causing activities two and three to count down twice as fast.
+    _stopProtocolTimer();
+    _protocolTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted || !_recording) {
+        _stopProtocolTimer();
+        return;
+      }
       setState(() => _elapsed++);
-      if (_elapsed < _protocols[_currentProtocol].durationSec) {
-        _tick();
-      } else {
+      if (_elapsed >= _protocols[_currentProtocol].durationSec) {
         setState(() => _recording = false);
+        _stopProtocolTimer();
       }
     });
+  }
+
+  void _stopProtocolTimer() {
+    _protocolTimer?.cancel();
+    _protocolTimer = null;
   }
 
   Future<void> _nextProtocol() async {
@@ -122,8 +135,9 @@ class _ElicitationScreenState extends State<ElicitationScreen>
         _elapsed = 0;
         _recording = true;
       });
-      _tick();
+      _startProtocolTimer();
     } else {
+      _stopProtocolTimer();
       await AudioPipelineService.stopSession();
       if (!mounted) return;
       setState(() {
@@ -153,6 +167,36 @@ class _ElicitationScreenState extends State<ElicitationScreen>
     context.push('/processing');
   }
 
+  Future<void> _skipAcousticTest() async {
+    _stopProtocolTimer();
+    await AudioPipelineService.stopSession();
+    await AudioPipelineService.deleteTemporaryRecording();
+    if (mounted) context.go('/processing?skipAcoustic=true');
+  }
+
+  Future<void> _confirmSkipAcousticTest() async {
+    final shouldSkip = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Skip voice test?'),
+        content: const Text(
+          'This temporary option creates a questionnaire-only result. It does not create or show acoustic measurements.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Keep recording'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Skip voice test'),
+          ),
+        ],
+      ),
+    );
+    if (shouldSkip == true && mounted) await _skipAcousticTest();
+  }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (!_recording ||
@@ -168,12 +212,14 @@ class _ElicitationScreenState extends State<ElicitationScreen>
       _recording = false;
       _error = 'Recording was interrupted. Please restart the activities.';
     });
+    _stopProtocolTimer();
     unawaited(AudioPipelineService.stopSession());
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _stopProtocolTimer();
     _waveformSubscription?.cancel();
     // Route disposal does not destroy MainActivity, so explicitly release the
     // microphone instead of relying on Android activity teardown.
@@ -289,6 +335,12 @@ class _ElicitationScreenState extends State<ElicitationScreen>
                   ),
                 ),
               ],
+              const SizedBox(height: 4),
+              TextButton.icon(
+                onPressed: _confirmSkipAcousticTest,
+                icon: const Icon(Icons.skip_next_rounded),
+                label: const Text('Temporary: skip voice test'),
+              ),
             ],
           ),
         ),

@@ -18,6 +18,7 @@ class ResultScreen extends ConsumerWidget {
     final session = ref.watch(sessionProvider);
     final result = session.result;
     final theme = Theme.of(context);
+    final questionnaireOnly = session.analysisStatus == 'SKIPPED';
     if (result == null) {
       return const Scaffold(body: Center(child: Text('No result available')));
     }
@@ -48,7 +49,12 @@ class ResultScreen extends ConsumerWidget {
                     size: 64,
                   ),
                   const SizedBox(height: 16),
-                  Text('Screening outcome', style: theme.textTheme.titleSmall),
+                  Text(
+                    questionnaireOnly
+                        ? 'Questionnaire outcome'
+                        : 'Screening outcome',
+                    style: theme.textTheme.titleSmall,
+                  ),
                   const SizedBox(height: 4),
                   Text(
                     result.riskLabel,
@@ -76,6 +82,15 @@ class ResultScreen extends ConsumerWidget {
                 padding: EdgeInsets.only(bottom: 12),
                 child: Text(
                   'Browser test data — not a live microphone or model result.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 12),
+                ),
+              ),
+            if (questionnaireOnly)
+              const Padding(
+                padding: EdgeInsets.only(bottom: 12),
+                child: Text(
+                  'Voice test skipped — this result is based only on the parent questionnaire, not acoustic measurements.',
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 12),
                 ),
@@ -112,59 +127,61 @@ class ResultScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 20),
             ],
-            Text('Acoustic signals', style: theme.textTheme.titleMedium),
-            const SizedBox(height: 4),
-            Text(
-              'Tap a signal to see its explanation.',
-              style: theme.textTheme.bodySmall,
-            ),
-            const SizedBox(height: 12),
-            BiomarkerChipWidget(
-              label: 'VTTL',
-              value: '${session.vttlMs.toStringAsFixed(0)} ms',
-              flagged: result.vttlFlagged,
-              onTap: () => showBiomarkerDetail(
-                context,
-                kind: BiomarkerKind.vttl,
-                ageMonths: session.childProfile!.childAgeMonths,
-                value: session.vttlMs,
+            if (!questionnaireOnly) ...[
+              Text('Acoustic signals', style: theme.textTheme.titleMedium),
+              const SizedBox(height: 4),
+              Text(
+                'Tap a signal to see its explanation.',
+                style: theme.textTheme.bodySmall,
+              ),
+              const SizedBox(height: 12),
+              BiomarkerChipWidget(
+                label: 'VTTL',
+                value: '${session.vttlMs.toStringAsFixed(0)} ms',
                 flagged: result.vttlFlagged,
-                waveform: session.waveform,
-                trace: session.decisionTrace,
+                onTap: () => showBiomarkerDetail(
+                  context,
+                  kind: BiomarkerKind.vttl,
+                  ageMonths: session.childProfile!.childAgeMonths,
+                  value: session.vttlMs,
+                  flagged: result.vttlFlagged,
+                  waveform: session.waveform,
+                  trace: session.decisionTrace,
+                ),
               ),
-            ),
-            const SizedBox(height: 10),
-            BiomarkerChipWidget(
-              label: 'CVR',
-              value: session.cvrRatio.toStringAsFixed(3),
-              flagged: result.cvrFlagged,
-              onTap: () => showBiomarkerDetail(
-                context,
-                kind: BiomarkerKind.cvr,
-                ageMonths: session.childProfile!.childAgeMonths,
-                value: session.cvrRatio,
+              const SizedBox(height: 10),
+              BiomarkerChipWidget(
+                label: 'CVR',
+                value: session.cvrRatio.toStringAsFixed(3),
                 flagged: result.cvrFlagged,
-                waveform: session.waveform,
-                trace: session.decisionTrace,
+                onTap: () => showBiomarkerDetail(
+                  context,
+                  kind: BiomarkerKind.cvr,
+                  ageMonths: session.childProfile!.childAgeMonths,
+                  value: session.cvrRatio,
+                  flagged: result.cvrFlagged,
+                  waveform: session.waveform,
+                  trace: session.decisionTrace,
+                ),
               ),
-            ),
-            const SizedBox(height: 10),
-            BiomarkerChipWidget(
-              label: 'PFV',
-              value: '${session.pfvStd.toStringAsFixed(2)} st SD',
-              flagged: result.pfvFlagged,
-              onTap: () => showBiomarkerDetail(
-                context,
-                kind: BiomarkerKind.pfv,
-                ageMonths: session.childProfile!.childAgeMonths,
-                value: session.pfvStd,
+              const SizedBox(height: 10),
+              BiomarkerChipWidget(
+                label: 'PFV',
+                value: '${session.pfvStd.toStringAsFixed(2)} st SD',
                 flagged: result.pfvFlagged,
-                waveform: session.waveform,
-                trace: session.decisionTrace,
-                pfvAgeZScore: result.pfvAgeZScore,
+                onTap: () => showBiomarkerDetail(
+                  context,
+                  kind: BiomarkerKind.pfv,
+                  ageMonths: session.childProfile!.childAgeMonths,
+                  value: session.pfvStd,
+                  flagged: result.pfvFlagged,
+                  waveform: session.waveform,
+                  trace: session.decisionTrace,
+                  pfvAgeZScore: result.pfvAgeZScore,
+                ),
               ),
-            ),
-            const SizedBox(height: 26),
+              const SizedBox(height: 26),
+            ],
             if (result.riskLevel == RiskLevel.red)
               FilledButton.icon(
                 onPressed: () async {
@@ -191,7 +208,11 @@ class ResultScreen extends ConsumerWidget {
                       .completeSession(workerName);
                   if (context.mounted) context.go('/');
                 },
-                child: const Text('Save screening'),
+                child: Text(
+                  questionnaireOnly
+                      ? 'Save questionnaire result'
+                      : 'Save screening',
+                ),
               ),
             const SizedBox(height: 8),
             TextButton(

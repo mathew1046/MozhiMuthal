@@ -170,6 +170,31 @@ class ScoringEngine {
     );
   }
 
+  /// Builds a result from the completed parent questionnaire when a worker
+  /// deliberately uses the temporary acoustic-test skip. No acoustic signal
+  /// is inferred, displayed, or marked as passed.
+  static BiomarkerResult questionnaireOnly(MyChildState? questionnaireState) {
+    if (questionnaireState == null) {
+      return const BiomarkerResult.incomplete([
+        'The parent questionnaire has not been completed.',
+      ]);
+    }
+    const questionnaireBaseline = BiomarkerResult(
+      riskLevel: RiskLevel.green,
+      vttlFlagged: false,
+      pfvFlagged: false,
+      cvrFlagged: false,
+      malayalamExplanation: '',
+    );
+    return combineWithQuestionnaire(
+      questionnaireBaseline,
+      questionnaireState,
+    ).copyWith(
+      malayalamExplanation:
+          'ശബ്ദ പരിശോധന ഒഴിവാക്കി. ഈ ഫലം മാതാപിതാക്കളുടെ ചോദ്യാവലിയിൽ മാത്രം അടിസ്ഥാനപ്പെടുത്തിയതാണ്; ഇത് രോഗനിർണയം അല്ല.',
+    );
+  }
+
   static String _getExplanation(RiskLevel level) {
     switch (level) {
       case RiskLevel.red:
