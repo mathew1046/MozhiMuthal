@@ -258,6 +258,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     itemBuilder: (context, index) {
                       final session = sessions[index];
                       final riskColor = _riskColor(session.riskLevel);
+                      final childLabel =
+                          session.childName?.trim().isNotEmpty == true
+                          ? session.childName!
+                          : 'Child • ${session.childAgeMonths} months';
+                      final locationLabel = session.anganwadiId.trim().isEmpty
+                          ? 'No Anganwadi ID'
+                          : session.anganwadiId;
                       return AppSurface(
                         onTap: () =>
                             context.push('/session-detail', extra: session),
@@ -275,15 +282,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    session.childName ??
-                                        'Child • ${session.childAgeMonths} months',
+                                    childLabel,
                                     style: Theme.of(
                                       context,
                                     ).textTheme.titleSmall,
                                   ),
                                   const SizedBox(height: 3),
                                   Text(
-                                    '${session.anganwadiId} • ${_formatDate(session.sessionDate)}',
+                                    '$locationLabel • ${_formatDate(session.sessionDate)}',
                                     style: Theme.of(
                                       context,
                                     ).textTheme.bodySmall,

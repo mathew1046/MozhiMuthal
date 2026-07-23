@@ -85,6 +85,12 @@ class _HistoryItem extends StatelessWidget {
       RiskLevel.yellow => const Color(0xFFC78B19),
       RiskLevel.green => const Color(0xFF3B8B6A),
     };
+    final childLabel = session.childName?.trim().isNotEmpty == true
+        ? session.childName!
+        : 'Child • ${session.childAgeMonths} months';
+    final locationLabel = session.anganwadiId.trim().isEmpty
+        ? 'No Anganwadi ID'
+        : session.anganwadiId;
     return AppSurface(
       onTap: () => context.push('/session-detail', extra: session),
       padding: const EdgeInsets.all(15),
@@ -96,14 +102,10 @@ class _HistoryItem extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  session.childName ??
-                      'Child • ${session.childAgeMonths} months',
-                  style: Theme.of(context).textTheme.titleSmall,
-                ),
+                Text(childLabel, style: Theme.of(context).textTheme.titleSmall),
                 const SizedBox(height: 3),
                 Text(
-                  '${session.sessionDate.day}/${session.sessionDate.month}/${session.sessionDate.year} • VTTL ${session.vttlMs.toStringAsFixed(0)} ms • CVR ${session.cvrRatio.toStringAsFixed(3)}',
+                  '$locationLabel • ${session.sessionDate.day}/${session.sessionDate.month}/${session.sessionDate.year} • VTTL ${session.vttlMs.toStringAsFixed(0)} ms • CVR ${session.cvrRatio.toStringAsFixed(3)}',
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
               ],

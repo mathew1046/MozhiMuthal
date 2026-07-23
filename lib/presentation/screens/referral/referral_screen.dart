@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:printing/printing.dart';
 
-import '../../../services/whatsapp_service.dart';
+import '../../../domain/referral_generator.dart';
 import '../../providers/session_provider.dart';
 import '../../widgets/app_ui.dart';
 
@@ -99,25 +100,47 @@ class ReferralScreen extends ConsumerWidget {
               const Spacer(),
               FilledButton.icon(
                 onPressed: () async {
-                  final sent = await WhatsAppService.share(
-                    text:
-                        'MozhiMuthal Screening Referral\n'
-                        'Anganwadi: ${profile?.anganwadiId}\n'
-                        'Age: ${profile?.childAgeMonths} months\n'
-                        'Result: RED — DEIC visit recommended',
-                  );
-                  if (!sent && context.mounted) {
+                  final savedSession = session.savedSession;
+                  if (savedSession == null) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text(
-                          'Could not open WhatsApp. Please check if it is installed.',
+                          'Save the screening before creating the referral PDF.',
                         ),
                       ),
                     );
+                    return;
+                  }
+                  try {
+                    final bytes = await ReferralGenerator.buildReferralPdf(
+                      savedSession,
+                    );
+                    final shared = await Printing.sharePdf(
+                      bytes: bytes,
+                      filename: 'MozhiMuthal_referral_${savedSession.id}.pdf',
+                      subject: 'MozhiMuthal developmental referral',
+                      body:
+                          'Developmental screening referral. Please select WhatsApp to share the PDF.',
+                    );
+                    if (!shared && context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Could not open the share sheet.'),
+                        ),
+                      );
+                    }
+                  } catch (_) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Could not create the referral PDF.'),
+                        ),
+                      );
+                    }
                   }
                 },
                 icon: const Icon(Icons.share_outlined),
-                label: const Text('Share on WhatsApp'),
+                label: const Text('Share referral PDF'),
                 style: FilledButton.styleFrom(
                   backgroundColor: const Color(0xFF25D366),
                   foregroundColor: Colors.white,

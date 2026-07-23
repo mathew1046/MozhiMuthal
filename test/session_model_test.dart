@@ -33,4 +33,31 @@ void main() {
     expect(restored.decisionTrace, isEmpty);
     expect(restored.waveform, isEmpty);
   });
+
+  test('a screening without a name or Anganwadi ID round-trips locally', () {
+    final session = SessionModel(
+      id: 'session-no-identity',
+      anganwadiId: '',
+      workerName: 'Worker',
+      childName: null,
+      childAgeMonths: 24,
+      sessionDate: DateTime(2026),
+      riskLevel: RiskLevel.green,
+      vttlMs: 0,
+      pfvStd: 0,
+      cvrRatio: 0,
+      vttlFlagged: false,
+      pfvFlagged: false,
+      cvrFlagged: false,
+      audioSourceUsed: 'SKIPPED_BY_WORKER',
+      districtCode: 'TVM',
+      analysisStatus: 'SKIPPED',
+    );
+
+    final restored = SessionModel.fromMap(session.toMap());
+
+    expect(restored.childName, isNull);
+    expect(restored.anganwadiId, isEmpty);
+    expect(restored.analysisStatus, 'SKIPPED');
+  });
 }

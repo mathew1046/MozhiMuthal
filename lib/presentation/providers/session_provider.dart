@@ -20,6 +20,7 @@ class SessionState {
   final double voicedSeconds;
   final double childVoicedSeconds;
   final bool isComplete;
+  final SessionModel? savedSession;
   final List<double> waveform;
   final List<Map<String, dynamic>> decisionTrace;
   final Map<String, MyChildAnswer> questionnaireAnswers;
@@ -39,6 +40,7 @@ class SessionState {
     this.voicedSeconds = 0,
     this.childVoicedSeconds = 0,
     this.isComplete = false,
+    this.savedSession,
     this.waveform = const [],
     this.decisionTrace = const [],
     this.questionnaireAnswers = const {},
@@ -59,6 +61,7 @@ class SessionState {
     double? voicedSeconds,
     double? childVoicedSeconds,
     bool? isComplete,
+    SessionModel? savedSession,
     List<double>? waveform,
     List<Map<String, dynamic>>? decisionTrace,
     Map<String, MyChildAnswer>? questionnaireAnswers,
@@ -78,6 +81,7 @@ class SessionState {
       voicedSeconds: voicedSeconds ?? this.voicedSeconds,
       childVoicedSeconds: childVoicedSeconds ?? this.childVoicedSeconds,
       isComplete: isComplete ?? this.isComplete,
+      savedSession: savedSession ?? this.savedSession,
       waveform: waveform ?? this.waveform,
       decisionTrace: decisionTrace ?? this.decisionTrace,
       questionnaireAnswers: questionnaireAnswers ?? this.questionnaireAnswers,
@@ -89,7 +93,9 @@ class SessionState {
 }
 
 class SessionNotifier extends StateNotifier<SessionState> {
-  SessionNotifier() : super(const SessionState());
+  SessionNotifier([this._ref]) : super(const SessionState());
+
+  final Ref? _ref;
 
   void setChildProfile(ChildProfile profile) {
     state = state.copyWith(childProfile: profile);
@@ -184,7 +190,11 @@ class SessionNotifier extends StateNotifier<SessionState> {
     );
 
     await SessionRepository().saveSession(session);
-    state = state.copyWith(isComplete: true);
+    state = state.copyWith(isComplete: true, savedSession: session);
+    // The home screen can still be mounted behind the result route. Refresh
+    // its cached history immediately so a saved screening is visible as soon
+    // as the worker returns home.
+    _ref?.invalidate(pastSessionsProvider);
   }
 
   void reset() {
@@ -195,7 +205,7 @@ class SessionNotifier extends StateNotifier<SessionState> {
 final sessionProvider = StateNotifierProvider<SessionNotifier, SessionState>((
   ref,
 ) {
-  return SessionNotifier();
+  return SessionNotifier(ref);
 });
 
 /// Provider for past sessions list.
