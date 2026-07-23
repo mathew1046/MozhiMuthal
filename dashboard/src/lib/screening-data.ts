@@ -27,6 +27,32 @@ export type ScreeningAnalysis = {
   waveform: number[] | null;
 };
 
+export type DistrictSummary = {
+  code: string;
+  name: string;
+  total: number;
+  red: number;
+  yellow: number;
+  green: number;
+};
+
+const KERALA_DISTRICTS: Record<string, string> = {
+  TVM: "Thiruvananthapuram",
+  KLM: "Kollam",
+  PTA: "Pathanamthitta",
+  ALP: "Alappuzha",
+  KTM: "Kottayam",
+  IDK: "Idukki",
+  EKM: "Ernakulam",
+  TSR: "Thrissur",
+  PKD: "Palakkad",
+  MLP: "Malappuram",
+  KKD: "Kozhikode",
+  WYD: "Wayanad",
+  KNR: "Kannur",
+  KSD: "Kasaragod",
+};
+
 export async function getScreenings(childId?: string) {
   const supabase = createSupabaseAdmin();
   if (!supabase) {
@@ -57,6 +83,31 @@ export function riskCounts(rows: ScreeningAnalysis[]) {
     },
     { total: 0, red: 0, yellow: 0, green: 0 },
   );
+}
+
+export function districtSummaries(rows: ScreeningAnalysis[]): DistrictSummary[] {
+  const summaries = new Map<string, DistrictSummary>();
+
+  for (const row of rows) {
+    const code = row.district_code?.trim().toUpperCase() || "UNASSIGNED";
+    const summary = summaries.get(code) ?? {
+      code,
+      name: KERALA_DISTRICTS[code] ?? (code === "UNASSIGNED" ? "Unassigned" : code),
+      total: 0,
+      red: 0,
+      yellow: 0,
+      green: 0,
+    };
+    const risk = (row.risk_level ?? "green").toLowerCase();
+
+    summary.total++;
+    if (risk === "red") summary.red++;
+    else if (risk === "yellow") summary.yellow++;
+    else summary.green++;
+    summaries.set(code, summary);
+  }
+
+  return [...summaries.values()].sort((a, b) => b.total - a.total || a.name.localeCompare(b.name));
 }
 
 export function flaggedBiomarkers(row: ScreeningAnalysis) {

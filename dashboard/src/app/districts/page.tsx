@@ -1,8 +1,11 @@
 import { Sidebar } from "@/components/sidebar";
 import { DistrictTable } from "@/components/district-table";
-import { districts } from "@/lib/mock-data";
+import { districtSummaries, getScreenings } from "@/lib/screening-data";
 
-export default function DistrictsPage() {
+export default async function DistrictsPage() {
+  const { data: screenings, error } = await getScreenings();
+  const districts = districtSummaries(screenings);
+
   return (
     <div className="flex min-h-screen w-full">
       <Sidebar />
@@ -11,9 +14,15 @@ export default function DistrictsPage() {
         <div>
           <h1 className="text-xl font-bold tracking-tight">Districts</h1>
           <p className="text-sm text-slate-500 mt-0.5">
-            Screening data across all 14 Kerala districts
+            District totals from the 100 most recent synced screening sessions
           </p>
         </div>
+
+        {error ? (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+            {error}
+          </div>
+        ) : null}
 
         <DistrictTable data={districts} />
       </main>

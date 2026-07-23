@@ -28,7 +28,13 @@ export function DistrictTable({ data }: { data: DistrictRow[] }) {
             </tr>
           </thead>
           <tbody>
-            {data.map((d) => (
+            {data.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="px-5 py-8 text-center text-sm text-slate-500">
+                  No synced screening data is available.
+                </td>
+              </tr>
+            ) : data.map((d) => (
               <tr key={d.code} className="border-b last:border-b-0 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
                 <td className="px-5 py-2.5 font-medium">{d.name}</td>
                 <td className="text-right px-4 py-2.5 text-slate-500">{d.total}</td>
