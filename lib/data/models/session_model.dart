@@ -295,36 +295,57 @@ class SessionModel {
 
 Map<String, String> _decodeStringMap(String value) {
   if (value.trim().isEmpty) return const {};
-  if (value.trim().startsWith('{')) {
-    final decoded = jsonDecode(value) as Map<String, dynamic>;
-    return decoded.map((key, value) => MapEntry(key, value.toString()));
+  try {
+    if (value.trim().startsWith('{')) {
+      final decoded = jsonDecode(value) as Map<String, dynamic>;
+      return decoded.map((key, value) => MapEntry(key, value.toString()));
+    }
+    return value.split('|').where((e) => e.contains(':')).fold(
+      <String, String>{},
+      (out, item) {
+        final index = item.indexOf(':');
+        out[item.substring(0, index)] = item.substring(index + 1) == 'true'
+            ? 'achieved'
+            : 'notYet';
+        return out;
+      },
+    );
+  } on FormatException {
+    return const {};
   }
-  return value.split('|').where((e) => e.contains(':')).fold(
-    <String, String>{},
-    (out, item) {
-      final index = item.indexOf(':');
-      out[item.substring(0, index)] = item.substring(index + 1) == 'true'
-          ? 'achieved'
-          : 'notYet';
-      return out;
-    },
-  );
 }
 
 Map<String, dynamic> _decodeMap(String value) {
   if (value.trim().isEmpty) return const {};
-  final decoded = jsonDecode(value) as Map<String, dynamic>;
-  return decoded;
+  try {
+    return jsonDecode(value) as Map<String, dynamic>;
+  } on FormatException {
+    return const {};
+  }
 }
 
 List<Map<String, dynamic>> _decodeMapList(String value) {
   if (value.trim().isEmpty) return const [];
-  final decoded = jsonDecode(value) as List<dynamic>;
-  return decoded.map((item) => Map<String, dynamic>.from(item as Map)).toList();
+  try {
+    final decoded = jsonDecode(value) as List<dynamic>;
+    return decoded
+        .map((item) => Map<String, dynamic>.from(item as Map))
+        .toList();
+  } on FormatException {
+    return const [];
+  } on TypeError {
+    return const [];
+  }
 }
 
 List<double> _decodeDoubleList(String value) {
   if (value.trim().isEmpty) return const [];
-  final decoded = jsonDecode(value) as List<dynamic>;
-  return decoded.map((v) => (v as num).toDouble()).toList();
+  try {
+    final decoded = jsonDecode(value) as List<dynamic>;
+    return decoded.map((v) => (v as num).toDouble()).toList();
+  } on FormatException {
+    return const [];
+  } on TypeError {
+    return const [];
+  }
 }

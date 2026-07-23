@@ -242,14 +242,10 @@ class _ChildProfileScreenState extends ConsumerState<ChildProfileScreen> {
                       controller: _anganwadiController,
                       textCapitalization: TextCapitalization.characters,
                       decoration: const InputDecoration(
-                        labelText: 'Anganwadi ID',
+                        labelText: 'Anganwadi ID (optional)',
                         hintText: 'For example, KL-IDK-042',
                         prefixIcon: Icon(Icons.location_city_outlined),
                       ),
-                      validator: (value) =>
-                          value == null || value.trim().isEmpty
-                          ? 'Enter the Anganwadi ID'
-                          : null,
                     ),
                     const SizedBox(height: 16),
                     DropdownButtonFormField<String>(
