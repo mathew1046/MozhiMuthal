@@ -85,7 +85,7 @@ class ReferralScreen extends ConsumerWidget {
                     ],
                     const SizedBox(height: 22),
                     AppSurface(
-                      color: scheme.errorContainer.withOpacity(.55),
+                      color: scheme.errorContainer.withValues(alpha: .55),
                       borderColor: scheme.errorContainer,
                       padding: const EdgeInsets.all(14),
                       child: Text(

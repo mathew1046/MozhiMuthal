@@ -173,7 +173,7 @@ class _TraceChart extends StatelessWidget {
       height: 92,
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primary.withOpacity(.06),
+        color: Theme.of(context).colorScheme.primary.withValues(alpha: .06),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(

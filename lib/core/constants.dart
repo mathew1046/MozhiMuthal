@@ -1,4 +1,5 @@
 /// App-wide constants for MozhiMuthal screening.
+library;
 
 class AppConstants {
   AppConstants._();

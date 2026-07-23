@@ -253,7 +253,7 @@ class _ChildProfileScreenState extends ConsumerState<ChildProfileScreen> {
                     ),
                     const SizedBox(height: 16),
                     DropdownButtonFormField<String>(
-                      value: _districtCode,
+                      initialValue: _districtCode,
                       decoration: const InputDecoration(
                         labelText: 'District',
                         prefixIcon: Icon(Icons.map_outlined),
@@ -267,8 +267,9 @@ class _ChildProfileScreenState extends ConsumerState<ChildProfileScreen> {
                           )
                           .toList(),
                       onChanged: (value) {
-                        if (value != null)
+                        if (value != null) {
                           setState(() => _districtCode = value);
+                        }
                       },
                     ),
                   ],

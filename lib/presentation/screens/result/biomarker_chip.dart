@@ -24,7 +24,7 @@ class BiomarkerChipWidget extends StatelessWidget {
         : const Color(0xFF3B8B6A);
     return AppSurface(
       onTap: onTap,
-      borderColor: flagged ? statusColor.withOpacity(.35) : null,
+      borderColor: flagged ? statusColor.withValues(alpha: .35) : null,
       padding: const EdgeInsets.all(14),
       child: Row(
         children: [

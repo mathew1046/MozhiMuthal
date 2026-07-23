@@ -62,7 +62,7 @@ class _ConsentScreenState extends State<ConsentScreen> {
               ),
               const Spacer(),
               AppSurface(
-                color: scheme.secondaryContainer.withOpacity(.38),
+                color: scheme.secondaryContainer.withValues(alpha: .38),
                 borderColor: scheme.secondaryContainer,
                 padding: const EdgeInsets.all(28),
                 child: Column(

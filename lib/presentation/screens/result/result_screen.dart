@@ -18,8 +18,9 @@ class ResultScreen extends ConsumerWidget {
     final session = ref.watch(sessionProvider);
     final result = session.result;
     final theme = Theme.of(context);
-    if (result == null)
+    if (result == null) {
       return const Scaffold(body: Center(child: Text('No result available')));
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -32,8 +33,8 @@ class ResultScreen extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             AppSurface(
-              color: result.riskColor.withOpacity(.09),
-              borderColor: result.riskColor.withOpacity(.34),
+              color: result.riskColor.withValues(alpha: .09),
+              borderColor: result.riskColor.withValues(alpha: .34),
               padding: const EdgeInsets.all(26),
               child: Column(
                 children: [
@@ -63,7 +64,7 @@ class ResultScreen extends ConsumerWidget {
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 15,
-                      color: theme.colorScheme.onSurface.withOpacity(.74),
+                      color: theme.colorScheme.onSurface.withValues(alpha: .74),
                     ),
                   ),
                 ],
@@ -80,7 +81,9 @@ class ResultScreen extends ConsumerWidget {
                 ),
               ),
             AppSurface(
-              color: theme.colorScheme.surfaceContainerHighest.withOpacity(.58),
+              color: theme.colorScheme.surfaceContainerHighest.withValues(
+                alpha: .58,
+              ),
               borderColor: theme.colorScheme.surfaceContainerHighest,
               padding: const EdgeInsets.all(13),
               child: Row(

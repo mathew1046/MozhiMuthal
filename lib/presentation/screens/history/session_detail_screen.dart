@@ -23,8 +23,8 @@ class SessionDetailScreen extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: color.withOpacity(.08),
-              border: Border.all(color: color.withOpacity(.3)),
+              color: color.withValues(alpha: .08),
+              border: Border.all(color: color.withValues(alpha: .3)),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Column(

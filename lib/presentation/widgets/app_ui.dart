@@ -65,7 +65,7 @@ class AppSectionHeader extends StatelessWidget {
             ],
           ),
         ),
-        if (trailing != null) trailing!,
+        ?trailing,
       ],
     );
   }
@@ -133,7 +133,7 @@ class AppIconBadge extends StatelessWidget {
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: accent.withOpacity(.14),
+        color: accent.withValues(alpha: .14),
         borderRadius: BorderRadius.circular(size * .32),
       ),
       child: Icon(icon, color: accent, size: size * .5),
@@ -158,7 +158,7 @@ class AppPill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withOpacity(.13),
+        color: color.withValues(alpha: .13),
         borderRadius: BorderRadius.circular(99),
       ),
       child: Row(

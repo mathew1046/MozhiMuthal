@@ -193,8 +193,8 @@ class _ProcessingScreenState extends ConsumerState<ProcessingScreen>
                           height: 148,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: scheme.primaryContainer.withOpacity(
-                              .48 + _controller.value * .18,
+                            color: scheme.primaryContainer.withValues(
+                              alpha: .48 + _controller.value * .18,
                             ),
                           ),
                         ),

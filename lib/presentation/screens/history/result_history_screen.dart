@@ -16,12 +16,14 @@ class ResultHistoryScreen extends StatelessWidget {
       body: FutureBuilder<List<SessionModel>>(
         future: SessionRepository().getAllSessions(),
         builder: (context, snapshot) {
-          if (snapshot.connectionState != ConnectionState.done)
+          if (snapshot.connectionState != ConnectionState.done) {
             return const Center(child: CircularProgressIndicator());
-          if (snapshot.hasError)
+          }
+          if (snapshot.hasError) {
             return Center(
               child: Text('Could not load results: ${snapshot.error}'),
             );
+          }
           final sessions = snapshot.data ?? const [];
           if (sessions.isEmpty) {
             return Center(

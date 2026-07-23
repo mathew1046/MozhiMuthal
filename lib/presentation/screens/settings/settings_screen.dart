@@ -63,8 +63,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (!_loaded)
+    if (!_loaded) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
     final scheme = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
@@ -105,7 +106,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const SizedBox(height: 14),
             AppSurface(
               color: _demoMode
-                  ? scheme.secondaryContainer.withOpacity(.42)
+                  ? scheme.secondaryContainer.withValues(alpha: .42)
                   : null,
               borderColor: _demoMode ? scheme.secondaryContainer : null,
               padding: const EdgeInsets.fromLTRB(16, 10, 12, 10),

@@ -308,7 +308,7 @@ class _LiveWaveform extends StatelessWidget {
     return Semantics(
       label: active ? 'Live microphone waveform' : 'Recording waveform paused',
       child: AppSurface(
-        color: scheme.surfaceContainerHighest.withOpacity(.7),
+        color: scheme.surfaceContainerHighest.withValues(alpha: .7),
         borderColor: scheme.surfaceContainerHighest,
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         child: SizedBox(
@@ -322,7 +322,7 @@ class _LiveWaveform extends StatelessWidget {
                   margin: const EdgeInsets.symmetric(horizontal: 1),
                   height: 4 + (level * 32),
                   decoration: BoxDecoration(
-                    color: scheme.primary.withOpacity(active ? .85 : .28),
+                    color: scheme.primary.withValues(alpha: active ? .85 : .28),
                     borderRadius: BorderRadius.circular(4),
                   ),
                 ),
