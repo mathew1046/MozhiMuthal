@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
 import '../../../domain/my_child_engine.dart';
 import '../../providers/session_provider.dart';
+import '../../widgets/app_ui.dart';
 
 class QuestionnaireScreen extends ConsumerStatefulWidget {
   const QuestionnaireScreen({super.key});
@@ -14,171 +16,280 @@ class QuestionnaireScreen extends ConsumerStatefulWidget {
 
 class _QuestionnaireScreenState extends ConsumerState<QuestionnaireScreen> {
   final Map<String, MyChildAnswer> _answers = {};
+  final ScrollController _questionScrollController = ScrollController();
+  int _currentQuestionIndex = 0;
+
+  void _showQuestion(int index) {
+    setState(() => _currentQuestionIndex = index);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _questionScrollController.hasClients) {
+        _questionScrollController.jumpTo(0);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _questionScrollController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final profile = ref.watch(sessionProvider).childProfile;
     if (profile == null) {
-      return const Scaffold(
-        body: Center(child: Text('Child details are required first.')),
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    final questions = MyChildEngine.forAge(profile.childAgeMonths);
+    final total = questions.length;
+    final answered = _answers.length;
+    final remaining = total - answered;
+
+    if (questions.isEmpty) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Development questions')),
+        body: const Center(child: Text('No questions are available yet.')),
       );
     }
-    final questions = MyChildEngine.forAge(profile.childAgeMonths);
-    final complete = questions.every((q) => _answers.containsKey(q.id));
+
+    final currentIndex = _currentQuestionIndex.clamp(0, questions.length - 1);
+    final question = questions[currentIndex];
+    final currentAnswer = _answers[question.id];
+    final currentAnswered = currentAnswer != null;
+    final isLastQuestion = currentIndex == questions.length - 1;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Development questionnaire')),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Text(
-              'Ask each age-appropriate MyChild milestone question. Malayalam text is saved with the answer; this is developmental monitoring, not a diagnosis.',
-              style: TextStyle(fontSize: 13),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              '${questions.length} questions for ${profile.childAgeMonths} months · Child ID ${profile.childUuid}',
-              style: const TextStyle(fontSize: 12),
-            ),
-            const SizedBox(height: 16),
-            Expanded(
-              child: questions.isEmpty
-                  ? const Center(
-                      child: Text(
-                        'No questionnaire prompts are available for this age.',
-                      ),
-                    )
-                  : ListView.separated(
-                      itemCount: questions.length,
-                      separatorBuilder: (_, _) => const SizedBox(height: 12),
-                      itemBuilder: (context, index) {
-                        final q = questions[index];
-                        return Card(
-                          child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+      appBar: AppBar(title: const Text('Parent questionnaire')),
+      body: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const AppStepIndicator(
+                current: 3,
+                total: 4,
+                label: 'Step 1 of 4 · Development check',
+              ),
+              const SizedBox(height: 18),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    '$remaining ${remaining == 1 ? 'answer' : 'answers'} remaining',
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                  AppPill(
+                    label: currentAnswered ? 'ANSWERED' : 'IN PROGRESS',
+                    color: currentAnswered
+                        ? Theme.of(context).colorScheme.secondary
+                        : Theme.of(context).colorScheme.primary,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 9),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(99),
+                child: LinearProgressIndicator(
+                  value: answered / total,
+                  minHeight: 7,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'Question ${currentIndex + 1} of $total',
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 14),
+              Expanded(
+                child: AppSurface(
+                  padding: EdgeInsets.zero,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: Scrollbar(
+                      controller: _questionScrollController,
+                      child: SingleChildScrollView(
+                        controller: _questionScrollController,
+                        padding: const EdgeInsets.all(22),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (question.isMchatQuestion) ...[
+                              const AppPill(
+                                label: 'M-CHAT-R/F',
+                                color: Colors.teal,
+                              ),
+                              const SizedBox(height: 14),
+                            ],
+                            Text(
+                              question.prompt,
+                              style: Theme.of(context).textTheme.titleLarge,
+                            ),
+                            if (question.subtext != null &&
+                                question.subtext!.trim().isNotEmpty) ...[
+                              const SizedBox(height: 8),
+                              Text(
+                                question.subtext!,
+                                style: Theme.of(context).textTheme.bodyMedium,
+                              ),
+                            ],
+                            const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 18),
+                              child: Divider(),
+                            ),
+                            Text(
+                              'Malayalam',
+                              style: Theme.of(context).textTheme.labelLarge
+                                  ?.copyWith(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
+                                  ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              question.malayalam ??
+                                  'Malayalam translation unavailable.',
+                              style: Theme.of(context).textTheme.titleSmall,
+                            ),
+                            if (question.malayalamSubtext != null &&
+                                question.malayalamSubtext!
+                                    .trim()
+                                    .isNotEmpty) ...[
+                              const SizedBox(height: 6),
+                              Text(
+                                question.malayalamSubtext!,
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                            ],
+                            const SizedBox(height: 18),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
                               children: [
-                                if (q.isMchatQuestion &&
-                                    (index == 0 ||
-                                        !questions[index - 1]
-                                            .isMchatQuestion)) ...[
-                                  const Text(
-                                    'M-CHAT-R (16–30 months)',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.teal,
-                                    ),
+                                if (question.tags.isNotEmpty)
+                                  ...question.tags.map(
+                                    (tag) => Chip(label: Text(tag)),
                                   ),
-                                  const SizedBox(height: 8),
-                                ],
-                                Text(
-                                  q.malayalam ?? q.prompt,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                if (q.malayalamSubtext != null) ...[
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    q.malayalamSubtext!,
-                                    style: const TextStyle(fontSize: 12),
-                                  ),
-                                ],
-                                const SizedBox(height: 6),
-                                Text(
-                                  '${q.prompt}${q.subtext == null ? '' : '\n${q.subtext}'}',
-                                  style: const TextStyle(fontSize: 12),
-                                ),
-                                const SizedBox(height: 8),
-                                Wrap(
-                                  spacing: 6,
-                                  runSpacing: 6,
-                                  children: [
-                                    for (final tag in q.tags)
-                                      Chip(
-                                        label: Text(tag),
-                                        visualDensity: VisualDensity.compact,
-                                      ),
-                                    Chip(
-                                      label: Text('Weight ${q.weight}'),
-                                      visualDensity: VisualDensity.compact,
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 12),
-                                SegmentedButton<MyChildAnswer>(
-                                  emptySelectionAllowed: true,
-                                  segments: q.isMchatQuestion
-                                      ? const [
-                                          ButtonSegment(
-                                            value: MyChildAnswer.achieved,
-                                            label: Text('Yes'),
-                                          ),
-                                          ButtonSegment(
-                                            value: MyChildAnswer.notYet,
-                                            label: Text('No'),
-                                          ),
-                                        ]
-                                      : const [
-                                          ButtonSegment(
-                                            value: MyChildAnswer.achieved,
-                                            label: Text('Achieved'),
-                                          ),
-                                          ButtonSegment(
-                                            value: MyChildAnswer.notYet,
-                                            label: Text('Not yet'),
-                                          ),
-                                          ButtonSegment(
-                                            value: MyChildAnswer.unsure,
-                                            label: Text('Unsure'),
-                                          ),
-                                        ],
-                                  selected: _answers.containsKey(q.id)
-                                      ? {_answers[q.id]!}
-                                      : const {},
-                                  onSelectionChanged: (value) => setState(
-                                    () => _answers[q.id] = value.first,
-                                  ),
-                                ),
-                                if (_answers[q.id] == MyChildAnswer.unsure) ...[
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    MyChildEngine.probesMalayalam(q).join('\n'),
-                                    style: const TextStyle(fontSize: 12),
-                                  ),
-                                ],
+                                Chip(label: Text('Weight ${question.weight}')),
                               ],
                             ),
-                          ),
-                        );
-                      },
+                            const SizedBox(height: 24),
+                            SegmentedButton<MyChildAnswer>(
+                              emptySelectionAllowed: true,
+                              showSelectedIcon: false,
+                              segments: question.isMchatQuestion
+                                  ? const [
+                                      ButtonSegment(
+                                        value: MyChildAnswer.achieved,
+                                        label: Text('Yes'),
+                                      ),
+                                      ButtonSegment(
+                                        value: MyChildAnswer.notYet,
+                                        label: Text('No'),
+                                      ),
+                                    ]
+                                  : const [
+                                      ButtonSegment(
+                                        value: MyChildAnswer.achieved,
+                                        label: Text('Achieved'),
+                                      ),
+                                      ButtonSegment(
+                                        value: MyChildAnswer.notYet,
+                                        label: Text('Not yet'),
+                                      ),
+                                      ButtonSegment(
+                                        value: MyChildAnswer.unsure,
+                                        label: Text('Unsure'),
+                                      ),
+                                    ],
+                              selected: currentAnswer == null
+                                  ? const <MyChildAnswer>{}
+                                  : <MyChildAnswer>{currentAnswer},
+                              onSelectionChanged: (selection) {
+                                setState(
+                                  () => _answers[question.id] = selection.first,
+                                );
+                              },
+                            ),
+                            if (currentAnswer == MyChildAnswer.unsure &&
+                                question.probes.isNotEmpty) ...[
+                              const SizedBox(height: 18),
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(14),
+                                decoration: BoxDecoration(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .primaryContainer
+                                      .withValues(alpha: .36),
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: Text(
+                                  MyChildEngine.probesMalayalam(
+                                    question,
+                                  ).join('\n'),
+                                  style: Theme.of(context).textTheme.bodyMedium,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
                     ),
-            ),
-            FilledButton.icon(
-              onPressed: complete
-                  ? () {
-                      final evaluation = MyChildEngine.evaluateDetailed(
-                        ageMonths: profile.childAgeMonths,
-                        birthDate: profile.birthDate,
-                        gestationalWeeks: profile.gestationalWeeks,
-                        answers: _answers,
-                      );
-                      ref
-                          .read(sessionProvider.notifier)
-                          .setQuestionnaire(_answers, evaluation);
-                      context.push('/consent');
-                    }
-                  : null,
-              icon: const Icon(Icons.arrow_forward),
-              label: Text(
-                complete
-                    ? 'Continue to consent'
-                    : 'Answer ${questions.length - _answers.length} more',
+                  ),
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: currentIndex == 0
+                          ? null
+                          : () => _showQuestion(currentIndex - 1),
+                      icon: const Icon(Icons.arrow_back_rounded),
+                      label: const Text('Previous'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: FilledButton.icon(
+                      onPressed: !currentAnswered
+                          ? null
+                          : () {
+                              if (!isLastQuestion) {
+                                _showQuestion(currentIndex + 1);
+                                return;
+                              }
+
+                              final evaluation = MyChildEngine.evaluateDetailed(
+                                ageMonths: profile.childAgeMonths,
+                                birthDate: profile.birthDate,
+                                gestationalWeeks: profile.gestationalWeeks,
+                                answers: _answers,
+                              );
+                              ref
+                                  .read(sessionProvider.notifier)
+                                  .setQuestionnaire(_answers, evaluation);
+                              context.push('/consent');
+                            },
+                      icon: Icon(
+                        isLastQuestion
+                            ? Icons.arrow_forward_rounded
+                            : Icons.navigate_next_rounded,
+                      ),
+                      label: Text(isLastQuestion ? 'Continue' : 'Next'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );

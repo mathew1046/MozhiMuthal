@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 import '../../../services/audio_pipeline_service.dart';
+import '../../widgets/app_ui.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -30,8 +32,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     AudioPipelineService.mode = _demoMode
         ? AudioPipelineMode.demo
         : AudioPipelineMode.live;
-    if (!mounted) return;
-    setState(() => _loaded = true);
+    if (mounted) setState(() => _loaded = true);
   }
 
   Future<void> _save() async {
@@ -45,7 +46,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     AudioPipelineService.mode = _demoMode
         ? AudioPipelineMode.demo
         : AudioPipelineMode.live;
-
     if (mounted) {
       ScaffoldMessenger.of(
         context,
@@ -63,46 +63,75 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (!_loaded) {
+    if (!_loaded)
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    }
-
+    final scheme = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
-      body: ListView(
-        padding: const EdgeInsets.all(24),
-        children: [
-          TextFormField(
-            controller: _nameController,
-            decoration: const InputDecoration(
-              labelText: 'Worker Name',
-              border: OutlineInputBorder(),
+      body: SafeArea(
+        top: false,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+          children: [
+            const AppSectionHeader(
+              title: 'Your workspace',
+              subtitle:
+                  'These details are used to prepare each screening session.',
             ),
-          ),
-          const SizedBox(height: 20),
-          TextFormField(
-            controller: _anganwadiController,
-            decoration: const InputDecoration(
-              labelText: 'Default Anganwadi ID',
-              border: OutlineInputBorder(),
+            const SizedBox(height: 20),
+            AppSurface(
+              child: Column(
+                children: [
+                  TextFormField(
+                    controller: _nameController,
+                    textCapitalization: TextCapitalization.words,
+                    decoration: const InputDecoration(
+                      labelText: 'Worker name',
+                      prefixIcon: Icon(Icons.badge_outlined),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _anganwadiController,
+                    textCapitalization: TextCapitalization.characters,
+                    decoration: const InputDecoration(
+                      labelText: 'Default Anganwadi ID',
+                      prefixIcon: Icon(Icons.location_city_outlined),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(height: 20),
-          SwitchListTile(
-            title: const Text('Demo Mode'),
-            subtitle: const Text('Use synthetic data for testing'),
-            value: _demoMode,
-            onChanged: (v) => setState(() => _demoMode = v),
-          ),
-          const SizedBox(height: 32),
-          FilledButton(
-            onPressed: _save,
-            style: FilledButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 16),
+            const SizedBox(height: 14),
+            AppSurface(
+              color: _demoMode
+                  ? scheme.secondaryContainer.withOpacity(.42)
+                  : null,
+              borderColor: _demoMode ? scheme.secondaryContainer : null,
+              padding: const EdgeInsets.fromLTRB(16, 10, 12, 10),
+              child: SwitchListTile.adaptive(
+                contentPadding: EdgeInsets.zero,
+                secondary: AppIconBadge(
+                  icon: Icons.science_outlined,
+                  color: scheme.secondary,
+                  size: 42,
+                ),
+                title: const Text('Demo mode'),
+                subtitle: const Text(
+                  'Use synthetic data for testing and walkthroughs.',
+                ),
+                value: _demoMode,
+                onChanged: (value) => setState(() => _demoMode = value),
+              ),
             ),
-            child: const Text('Save'),
-          ),
-        ],
+            const SizedBox(height: 26),
+            FilledButton.icon(
+              onPressed: _save,
+              icon: const Icon(Icons.save_outlined),
+              label: const Text('Save settings'),
+            ),
+          ],
+        ),
       ),
     );
   }

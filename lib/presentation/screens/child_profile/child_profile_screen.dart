@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
-import '../../../data/models/child_profile.dart';
+
 import '../../../core/constants.dart';
+import '../../../data/models/child_profile.dart';
 import '../../providers/session_provider.dart';
+import '../../widgets/app_ui.dart';
 
 class ChildProfileScreen extends ConsumerStatefulWidget {
   const ChildProfileScreen({super.key});
@@ -48,21 +50,22 @@ class _ChildProfileScreenState extends ConsumerState<ChildProfileScreen> {
 
   void _submit() {
     if (!_formKey.currentState!.validate()) return;
-
-    final profile = ChildProfile(
-      childUuid: const Uuid().v4(),
-      childName: _nameController.text.trim().isEmpty
-          ? null
-          : _nameController.text.trim(),
-      childAgeMonths: _ageMonths,
-      birthDate: _birthDate,
-      gestationalWeeks: _gestationalWeeks,
-      anganwadiId: _anganwadiController.text.trim(),
-      districtCode: _districtCode,
-    );
-
-    ref.read(sessionProvider.notifier).setChildProfile(profile);
-    context.push('/questionnaire');
+    ref
+        .read(sessionProvider.notifier)
+        .setChildProfile(
+          ChildProfile(
+            childUuid: const Uuid().v4(),
+            childName: _nameController.text.trim().isEmpty
+                ? null
+                : _nameController.text.trim(),
+            childAgeMonths: _ageMonths,
+            birthDate: _birthDate,
+            gestationalWeeks: _gestationalWeeks,
+            anganwadiId: _anganwadiController.text.trim(),
+            districtCode: _districtCode,
+          ),
+        );
+    context.push('/developmental-goals');
   }
 
   static DateTime _birthDateForAge(int months) {
@@ -93,146 +96,215 @@ class _ChildProfileScreenState extends ConsumerState<ChildProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
+    final scheme = Theme.of(context).colorScheme;
     return Scaffold(
-      appBar: AppBar(title: const Text('Child Details')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+      appBar: AppBar(title: const Text('Child details')),
+      body: SafeArea(
+        top: false,
         child: Form(
           key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
             children: [
-              // Name (optional)
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Child Name (optional)',
-                  border: OutlineInputBorder(),
-                ),
+              const AppStepIndicator(
+                current: 1,
+                total: 4,
+                label: 'Step 1 of 4 • About the child',
               ),
               const SizedBox(height: 20),
-
-              // Age in months
-              Text('Age (months)', style: theme.textTheme.bodyMedium),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  IconButton.outlined(
-                    onPressed: _ageMonths > AppConstants.minAgeMonths
-                        ? () => setState(() {
-                            _ageMonths--;
-                            _birthDate = _birthDateForAge(_ageMonths);
-                          })
-                        : null,
-                    icon: const Icon(Icons.remove),
-                  ),
-                  Expanded(
-                    child: Center(
-                      child: Text(
-                        '$_ageMonths',
-                        style: const TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
+              const AppSectionHeader(
+                title: 'Let’s start with the basics',
+                subtitle:
+                    'Use the details shared by the parent. The name is optional.',
+              ),
+              const SizedBox(height: 22),
+              AppSurface(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        AppIconBadge(
+                          icon: Icons.child_care_outlined,
+                          color: scheme.secondary,
                         ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'Child profile',
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    TextFormField(
+                      controller: _nameController,
+                      textCapitalization: TextCapitalization.words,
+                      decoration: const InputDecoration(
+                        labelText: 'Child name',
+                        hintText: 'Optional',
+                        prefixIcon: Icon(Icons.person_outline_rounded),
                       ),
                     ),
-                  ),
-                  IconButton.outlined(
-                    onPressed: _ageMonths < AppConstants.maxAgeMonths
-                        ? () => setState(() {
-                            _ageMonths++;
-                            _birthDate = _birthDateForAge(_ageMonths);
-                          })
-                        : null,
-                    icon: const Icon(Icons.add),
-                  ),
-                ],
-              ),
-              Slider(
-                value: _ageMonths.toDouble(),
-                min: AppConstants.minAgeMonths.toDouble(),
-                max: AppConstants.maxAgeMonths.toDouble(),
-                divisions:
-                    AppConstants.maxAgeMonths - AppConstants.minAgeMonths,
-                label: '$_ageMonths months',
-                onChanged: (v) => setState(() {
-                  _ageMonths = v.round();
-                  _birthDate = _birthDateForAge(_ageMonths);
-                }),
-              ),
-              const SizedBox(height: 20),
-
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Date of birth'),
-                subtitle: Text(
-                  '${_birthDate.day}/${_birthDate.month}/${_birthDate.year}',
+                    const SizedBox(height: 18),
+                    Text('Age', style: Theme.of(context).textTheme.titleSmall),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        _RoundIconButton(
+                          icon: Icons.remove_rounded,
+                          onPressed: _ageMonths > AppConstants.minAgeMonths
+                              ? () => setState(() {
+                                  _ageMonths--;
+                                  _birthDate = _birthDateForAge(_ageMonths);
+                                })
+                              : null,
+                        ),
+                        Expanded(
+                          child: Column(
+                            children: [
+                              Text(
+                                '$_ageMonths',
+                                style: Theme.of(context).textTheme.displaySmall,
+                              ),
+                              Text(
+                                'months old',
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                            ],
+                          ),
+                        ),
+                        _RoundIconButton(
+                          icon: Icons.add_rounded,
+                          onPressed: _ageMonths < AppConstants.maxAgeMonths
+                              ? () => setState(() {
+                                  _ageMonths++;
+                                  _birthDate = _birthDateForAge(_ageMonths);
+                                })
+                              : null,
+                        ),
+                      ],
+                    ),
+                    Slider(
+                      value: _ageMonths.toDouble(),
+                      min: AppConstants.minAgeMonths.toDouble(),
+                      max: AppConstants.maxAgeMonths.toDouble(),
+                      divisions:
+                          AppConstants.maxAgeMonths - AppConstants.minAgeMonths,
+                      label: '$_ageMonths months',
+                      onChanged: (value) => setState(() {
+                        _ageMonths = value.round();
+                        _birthDate = _birthDateForAge(_ageMonths);
+                      }),
+                    ),
+                    const SizedBox(height: 6),
+                    OutlinedButton.icon(
+                      onPressed: _pickBirthDate,
+                      icon: const Icon(Icons.calendar_month_outlined),
+                      label: Text(
+                        'Date of birth • ${_birthDate.day}/${_birthDate.month}/${_birthDate.year}',
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    Text(
+                      'Gestational age at birth',
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '$_gestationalWeeks weeks',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    Slider(
+                      value: _gestationalWeeks.toDouble(),
+                      min: 28,
+                      max: 42,
+                      divisions: 14,
+                      label: '$_gestationalWeeks weeks',
+                      onChanged: (value) =>
+                          setState(() => _gestationalWeeks = value.round()),
+                    ),
+                  ],
                 ),
-                trailing: const Icon(Icons.calendar_month_outlined),
-                onTap: _pickBirthDate,
               ),
-              const SizedBox(height: 12),
-
-              Text(
-                'Gestational age at birth: $_gestationalWeeks weeks',
-                style: theme.textTheme.bodyMedium,
-              ),
-              Slider(
-                value: _gestationalWeeks.toDouble(),
-                min: 28,
-                max: 42,
-                divisions: 14,
-                label: '$_gestationalWeeks weeks',
-                onChanged: (v) => setState(() => _gestationalWeeks = v.round()),
-              ),
-              const SizedBox(height: 20),
-
-              // Anganwadi ID
-              TextFormField(
-                controller: _anganwadiController,
-                decoration: const InputDecoration(
-                  labelText: 'Anganwadi ID',
-                  hintText: 'e.g. KL-IDK-042',
-                  border: OutlineInputBorder(),
+              const SizedBox(height: 14),
+              AppSurface(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Screening location',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _anganwadiController,
+                      textCapitalization: TextCapitalization.characters,
+                      decoration: const InputDecoration(
+                        labelText: 'Anganwadi ID',
+                        hintText: 'For example, KL-IDK-042',
+                        prefixIcon: Icon(Icons.location_city_outlined),
+                      ),
+                      validator: (value) =>
+                          value == null || value.trim().isEmpty
+                          ? 'Enter the Anganwadi ID'
+                          : null,
+                    ),
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<String>(
+                      value: _districtCode,
+                      decoration: const InputDecoration(
+                        labelText: 'District',
+                        prefixIcon: Icon(Icons.map_outlined),
+                      ),
+                      items: _districts.entries
+                          .map(
+                            (district) => DropdownMenuItem(
+                              value: district.key,
+                              child: Text(district.value),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (value) {
+                        if (value != null)
+                          setState(() => _districtCode = value);
+                      },
+                    ),
+                  ],
                 ),
-                validator: (v) =>
-                    v == null || v.trim().isEmpty ? 'Required' : null,
               ),
-              const SizedBox(height: 20),
-
-              // District
-              DropdownButtonFormField<String>(
-                value: _districtCode,
-                decoration: const InputDecoration(
-                  labelText: 'District',
-                  border: OutlineInputBorder(),
-                ),
-                items: _districts.entries
-                    .map(
-                      (e) =>
-                          DropdownMenuItem(value: e.key, child: Text(e.value)),
-                    )
-                    .toList(),
-                onChanged: (v) {
-                  if (v != null) setState(() => _districtCode = v);
-                },
-              ),
-              const SizedBox(height: 32),
-
+              const SizedBox(height: 24),
               FilledButton.icon(
                 onPressed: _submit,
-                icon: const Icon(Icons.arrow_forward),
-                label: const Text('Continue to Consent'),
-                style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                ),
+                icon: const Icon(Icons.arrow_forward_rounded),
+                label: const Text('Continue to questions'),
               ),
             ],
           ),
         ),
       ),
+    );
+  }
+}
+
+class _RoundIconButton extends StatelessWidget {
+  const _RoundIconButton({required this.icon, required this.onPressed});
+  final IconData icon;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return IconButton(
+      onPressed: onPressed,
+      style: IconButton.styleFrom(
+        minimumSize: const Size(48, 48),
+        backgroundColor: scheme.primaryContainer,
+        foregroundColor: scheme.onPrimaryContainer,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      ),
+      icon: Icon(icon),
     );
   }
 }

@@ -11,6 +11,7 @@ import '../presentation/screens/settings/settings_screen.dart';
 import '../presentation/screens/history/result_history_screen.dart';
 import '../presentation/screens/history/session_detail_screen.dart';
 import '../presentation/screens/questionnaire/questionnaire_screen.dart';
+import '../presentation/screens/developmental_goals/developmental_goals_screen.dart';
 import '../data/models/session_model.dart';
 
 final goRouter = GoRouter(
@@ -20,6 +21,10 @@ final goRouter = GoRouter(
     GoRoute(
       path: '/child-profile',
       builder: (context, state) => const ChildProfileScreen(),
+    ),
+    GoRoute(
+      path: '/developmental-goals',
+      builder: (context, state) => const DevelopmentalGoalsScreen(),
     ),
     GoRoute(
       path: '/questionnaire',

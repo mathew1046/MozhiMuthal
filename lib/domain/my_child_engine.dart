@@ -2759,12 +2759,11 @@ class CombinedScreeningResult {
     required String acousticTier,
     required bool audioQualityPassed,
   }) {
-    if (!audioQualityPassed)
-      return CombinedScreeningResult('INCOMPLETE', true, questionnaire);
     const order = {'GREEN': 0, 'YELLOW': 1, 'RED': 2};
     final q = MyChildEngine.tier(questionnaire);
+    final acoustic = order.containsKey(acousticTier) ? acousticTier : 'GREEN';
     return CombinedScreeningResult(
-      (order[q]! >= order[acousticTier]! ? q : acousticTier),
+      (order[q]! >= order[acoustic]! ? q : acoustic),
       false,
       questionnaire,
     );

@@ -57,7 +57,6 @@ class BiomarkerResult {
   }
 
   String get riskLabel {
-    if (incomplete) return 'INCOMPLETE';
     switch (riskLevel) {
       case RiskLevel.red:
         return 'RED';

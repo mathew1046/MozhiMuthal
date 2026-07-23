@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'dart:async';
 import 'package:go_router/go_router.dart';
+
 import '../../../core/constants.dart';
 import '../../../services/audio_pipeline_service.dart';
+import '../../widgets/app_ui.dart';
 import 'protocol_card.dart';
 
 class ElicitationScreen extends StatefulWidget {
@@ -14,7 +17,7 @@ class ElicitationScreen extends StatefulWidget {
 }
 
 class _ElicitationScreenState extends State<ElicitationScreen> {
-  int _currentProtocol = 0; // 0, 1, 2
+  int _currentProtocol = 0;
   int _elapsed = 0;
   bool _recording = false;
   String? _error;
@@ -27,20 +30,22 @@ class _ElicitationScreenState extends State<ElicitationScreen> {
   static const _protocols = [
     ProtocolInfo(
       title: 'Rattle',
-      instruction: 'Shake the rattle near the child',
-      icon: Icons.toys,
+      instruction:
+          'Shake the rattle near the child. Give them time to respond naturally.',
+      icon: Icons.toys_outlined,
       durationSec: AppConstants.rattleDuration,
     ),
     ProtocolInfo(
-      title: 'Toy Hide / Reveal',
-      instruction: 'Hide and reveal a toy',
-      icon: Icons.visibility,
+      title: 'Toy hide & reveal',
+      instruction:
+          'Hide and reveal a toy. Pause between turns and wait for the child.',
+      icon: Icons.visibility_outlined,
       durationSec: AppConstants.toyHideDuration,
     ),
     ProtocolInfo(
-      title: 'Imitation "aaa"',
-      instruction: 'Say "aaa" and wait for the child to imitate',
-      icon: Icons.record_voice_over,
+      title: 'Imitate “aaa”',
+      instruction: 'Say “aaa”, pause, and let the child try to imitate you.',
+      icon: Icons.record_voice_over_outlined,
       durationSec: AppConstants.imitationDuration,
     ),
   ];
@@ -69,11 +74,11 @@ class _ElicitationScreenState extends State<ElicitationScreen> {
         _error = null;
       });
       _tick();
-    } on AudioPipelineException catch (e) {
-      if (mounted) setState(() => _error = e.message);
-    } on PlatformException catch (e) {
+    } on AudioPipelineException catch (error) {
+      if (mounted) setState(() => _error = error.message);
+    } on PlatformException catch (error) {
       if (mounted)
-        setState(() => _error = e.message ?? 'Microphone unavailable');
+        setState(() => _error = error.message ?? 'Microphone unavailable');
     }
   }
 
@@ -112,17 +117,15 @@ class _ElicitationScreenState extends State<ElicitationScreen> {
     try {
       await AudioPipelineService.replayTemporaryRecording();
       if (mounted) setState(() => _hasReplayCopy = false);
-    } on PlatformException catch (e) {
+    } on PlatformException catch (error) {
       if (mounted)
-        setState(() => _error = e.message ?? 'Could not replay recording');
+        setState(() => _error = error.message ?? 'Could not replay recording');
     } finally {
       if (mounted) setState(() => _isReplaying = false);
     }
   }
 
   void _analyze() {
-    // The temporary recording is only for review; the numerical features are
-    // already held by the native pipeline.
     AudioPipelineService.deleteTemporaryRecording();
     context.push('/processing');
   }
@@ -139,90 +142,84 @@ class _ElicitationScreenState extends State<ElicitationScreen> {
   @override
   Widget build(BuildContext context) {
     final protocol = _protocols[_currentProtocol];
-    final theme = Theme.of(context);
+    final scheme = Theme.of(context).colorScheme;
+    final waitSeconds = AppConstants.minProtocolDuration - _elapsed;
 
     return Scaffold(
-      appBar: AppBar(title: Text('Protocol ${_currentProtocol + 1} of 3')),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            // Progress dots
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(3, (i) {
-                return Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 4),
-                  width: i == _currentProtocol ? 24 : 8,
-                  height: 8,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(4),
-                    color: i <= _currentProtocol
-                        ? theme.colorScheme.primary
-                        : theme.colorScheme.primary.withOpacity(0.2),
-                  ),
-                );
-              }),
-            ),
-            const SizedBox(height: 32),
-
-            // Protocol card
-            Expanded(
-              child: Column(
-                children: [
-                  Expanded(
-                    child: ProtocolCard(
-                      protocol: protocol,
-                      elapsed: _elapsed,
-                      isRecording: _recording,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  _LiveWaveform(samples: _waveform, active: _recording),
-                ],
+      appBar: AppBar(title: Text('Activity ${_currentProtocol + 1} of 3')),
+      body: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+          child: Column(
+            children: [
+              AppStepIndicator(
+                current: _currentProtocol + 1,
+                total: 3,
+                label: 'Guided voice activity',
               ),
-            ),
-
-            const SizedBox(height: 24),
-            if (_error != null)
-              Card(
-                child: Padding(
+              const SizedBox(height: 18),
+              Expanded(
+                child: ProtocolCard(
+                  protocol: protocol,
+                  elapsed: _elapsed,
+                  isRecording: _recording,
+                ),
+              ),
+              const SizedBox(height: 14),
+              _LiveWaveform(samples: _waveform, active: _recording),
+              if (_error != null) ...[
+                const SizedBox(height: 12),
+                AppSurface(
+                  color: scheme.errorContainer,
+                  borderColor: scheme.error,
                   padding: const EdgeInsets.all(12),
+                  child: Row(
+                    children: [
+                      Icon(Icons.mic_off_outlined, color: scheme.error),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Recording unavailable: $_error',
+                          style: TextStyle(color: scheme.onErrorContainer),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              const SizedBox(height: 14),
+              if (!_reviewReady && !_canProceed)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
                   child: Text(
-                    'Recording unavailable: $_error\nCheck microphone permission and try again.',
-                    style: TextStyle(color: theme.colorScheme.error),
+                    'Keep going for $waitSeconds more seconds before continuing.',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: _reviewReady
+                      ? _analyze
+                      : (_canProceed ? _nextProtocol : null),
+                  icon: Icon(
+                    _reviewReady || _currentProtocol == 2
+                        ? Icons.auto_graph_rounded
+                        : Icons.arrow_forward_rounded,
+                  ),
+                  label: Text(
+                    _reviewReady
+                        ? 'Analyse recording'
+                        : _currentProtocol < 2
+                        ? 'Next activity'
+                        : 'Finish recording',
                   ),
                 ),
               ),
-
-            // Next button
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton.icon(
-                onPressed: _reviewReady
-                    ? _analyze
-                    : (_canProceed ? _nextProtocol : null),
-                icon: Icon(
-                  _reviewReady || _currentProtocol == 2
-                      ? Icons.analytics
-                      : Icons.arrow_forward,
-                ),
-                label: Text(
-                  _reviewReady
-                      ? 'Analyze Recording'
-                      : (_currentProtocol < 2
-                            ? 'Next Protocol'
-                            : 'Finish Recording'),
-                ),
-                style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                ),
-              ),
-            ),
-            if (_reviewReady && _hasReplayCopy)
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: OutlinedButton.icon(
+              if (_reviewReady && _hasReplayCopy) ...[
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
                   onPressed: _isReplaying ? null : _replay,
                   icon: _isReplaying
                       ? const SizedBox(
@@ -230,24 +227,14 @@ class _ElicitationScreenState extends State<ElicitationScreen> {
                           height: 16,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Icon(Icons.replay),
+                      : const Icon(Icons.replay_rounded),
                   label: Text(
-                    _isReplaying ? 'Replaying…' : 'Replay once (then delete)',
+                    _isReplaying ? 'Replaying…' : 'Replay once, then delete',
                   ),
                 ),
-              ),
-            if (!_canProceed)
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Text(
-                  'Wait ${AppConstants.minProtocolDuration - _elapsed}s before proceeding',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: theme.colorScheme.onSurface.withOpacity(0.4),
-                  ),
-                ),
-              ),
-          ],
+              ],
+            ],
+          ),
         ),
       ),
     );
@@ -261,32 +248,31 @@ class _LiveWaveform extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = Theme.of(context).colorScheme.primary;
+    final scheme = Theme.of(context).colorScheme;
     return Semantics(
       label: active ? 'Live microphone waveform' : 'Recording waveform paused',
-      child: Container(
-        height: 58,
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-        decoration: BoxDecoration(
-          color: color.withOpacity(.07),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: List.generate(42, (index) {
-            final level = index < samples.length ? samples[index] : 0.04;
-            return Expanded(
-              child: Container(
-                margin: const EdgeInsets.symmetric(horizontal: 1),
-                height: 4 + (level * 40),
-                decoration: BoxDecoration(
-                  color: color.withOpacity(active ? .85 : .3),
-                  borderRadius: BorderRadius.circular(4),
+      child: AppSurface(
+        color: scheme.surfaceContainerHighest.withOpacity(.7),
+        borderColor: scheme.surfaceContainerHighest,
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        child: SizedBox(
+          height: 44,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: List.generate(42, (index) {
+              final level = index < samples.length ? samples[index] : .04;
+              return Expanded(
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 1),
+                  height: 4 + (level * 32),
+                  decoration: BoxDecoration(
+                    color: scheme.primary.withOpacity(active ? .85 : .28),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
                 ),
-              ),
-            );
-          }),
+              );
+            }),
+          ),
         ),
       ),
     );

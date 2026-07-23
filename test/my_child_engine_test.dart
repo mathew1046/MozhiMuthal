@@ -27,7 +27,7 @@ void main() {
         acousticTier: 'RED',
         audioQualityPassed: false,
       ).tier,
-      'INCOMPLETE',
+      'RED',
     );
   });
 

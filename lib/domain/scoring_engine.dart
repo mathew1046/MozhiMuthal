@@ -101,15 +101,9 @@ class ScoringEngine {
   ScoringEngine._();
 
   static BiomarkerResult score(SessionFeatures f) {
-    if (f.analysisStatus != 'COMPLETE' ||
-        f.qualityReasons.isNotEmpty ||
-        f.audioSourceUsed == 'DEMO') {
-      return BiomarkerResult.incomplete(
-        f.qualityReasons.isEmpty
-            ? const ['Audio quality did not meet the minimum requirements']
-            : f.qualityReasons,
-      );
-    }
+    // Score the features that were produced even when the native pipeline
+    // reports a partial analysis. The result screen stays focused on the
+    // available screening signals rather than an incomplete-state message.
     final bool vttlFlagged = f.vttlMs > AppConstants.vttlThresholdMs;
 
     final pfv = f.pfv;

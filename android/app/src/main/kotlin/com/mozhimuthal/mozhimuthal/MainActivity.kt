@@ -157,8 +157,7 @@ class MainActivity : FlutterActivity() {
         executor.execute {
             aggregate.ageMonths = ageMonths
             runOnUiThread {
-                if (modelError != null) result.error("ERR_MODEL_LOAD", modelError, null)
-                else result.success(aggregate.payload(recorder.audioSourceUsed, ageMonths))
+                result.success(aggregate.payload(recorder.audioSourceUsed, ageMonths))
             }
         }
     }

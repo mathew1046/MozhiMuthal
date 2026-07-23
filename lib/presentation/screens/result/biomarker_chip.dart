@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
 
-class BiomarkerChipWidget extends StatelessWidget {
-  final String label;
-  final String value;
-  final bool flagged;
-  final VoidCallback? onTap;
+import '../../widgets/app_ui.dart';
 
+class BiomarkerChipWidget extends StatelessWidget {
   const BiomarkerChipWidget({
     super.key,
     required this.label,
@@ -14,62 +11,53 @@ class BiomarkerChipWidget extends StatelessWidget {
     this.onTap,
   });
 
+  final String label;
+  final String value;
+  final bool flagged;
+  final VoidCallback? onTap;
+
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return InkWell(
+    final scheme = Theme.of(context).colorScheme;
+    final statusColor = flagged
+        ? const Color(0xFFC43D42)
+        : const Color(0xFF3B8B6A);
+    return AppSurface(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(10),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surface,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: theme.colorScheme.onSurface.withOpacity(0.08),
+      borderColor: flagged ? statusColor.withOpacity(.35) : null,
+      padding: const EdgeInsets.all(14),
+      child: Row(
+        children: [
+          AppIconBadge(
+            icon: label == 'VTTL'
+                ? Icons.swap_horiz_rounded
+                : label == 'CVR'
+                ? Icons.graphic_eq_rounded
+                : Icons.multitrack_audio_rounded,
+            color: flagged ? statusColor : scheme.primary,
+            size: 42,
           ),
-        ),
-        child: Row(
-          children: [
-            Text(
-              label,
-              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: Theme.of(context).textTheme.titleSmall),
+                const SizedBox(height: 2),
+                Text(value, style: Theme.of(context).textTheme.bodySmall),
+              ],
             ),
-            const SizedBox(width: 12),
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 13,
-                color: theme.colorScheme.onSurface.withOpacity(0.5),
-              ),
-            ),
-            const Spacer(),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: flagged
-                    ? const Color(0xFFC62828).withOpacity(0.1)
-                    : const Color(0xFF2E7D32).withOpacity(0.1),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Text(
-                flagged ? '⚠ Flagged' : '✓ Normal',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: flagged
-                      ? const Color(0xFFC62828)
-                      : const Color(0xFF2E7D32),
-                ),
-              ),
-            ),
-            if (onTap != null) ...[
-              const SizedBox(width: 6),
-              const Icon(Icons.chevron_right, size: 18),
-            ],
+          ),
+          AppPill(
+            label: flagged ? 'FLAGGED' : 'WITHIN RANGE',
+            color: statusColor,
+            icon: flagged ? Icons.priority_high_rounded : Icons.check_rounded,
+          ),
+          if (onTap != null) ...[
+            const SizedBox(width: 4),
+            Icon(Icons.chevron_right_rounded, color: scheme.outline),
           ],
-        ),
+        ],
       ),
     );
   }

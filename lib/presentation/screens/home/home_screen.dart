@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
+import '../../../data/models/biomarker_result.dart';
 import '../../providers/session_provider.dart';
 import '../../providers/sync_provider.dart';
-import '../../../data/models/biomarker_result.dart';
+import '../../widgets/app_ui.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -16,7 +18,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    // Refresh sync count and sessions on load
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(syncProvider.notifier).refreshCount();
       ref.invalidate(pastSessionsProvider);
@@ -27,138 +28,104 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     final syncState = ref.watch(syncProvider);
     final sessionsAsync = ref.watch(pastSessionsProvider);
-    final theme = Theme.of(context);
+    final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('MozhiMuthal'),
+        toolbarHeight: 72,
+        title: Row(
+          children: [
+            const AppIconBadge(icon: Icons.graphic_eq_rounded, size: 40),
+            const SizedBox(width: 10),
+            Text('MozhiMuthal', style: Theme.of(context).textTheme.titleLarge),
+          ],
+        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.history),
+            icon: const Icon(Icons.history_rounded),
             tooltip: 'Past results',
             onPressed: () => context.push('/history'),
           ),
+          const SizedBox(width: 4),
           IconButton(
-            icon: const Icon(Icons.settings_outlined),
+            icon: const Icon(Icons.tune_rounded),
+            tooltip: 'Settings',
             onPressed: () => context.push('/settings'),
           ),
+          const SizedBox(width: 10),
         ],
       ),
-      body: Column(
-        children: [
-          // Sync bar
-          if (syncState.pendingCount > 0)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              color: theme.colorScheme.primary.withOpacity(0.1),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.cloud_upload_outlined,
-                    size: 18,
-                    color: theme.colorScheme.primary,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    '${syncState.pendingCount} unsynced',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: theme.colorScheme.onSurface,
-                    ),
-                  ),
-                  const Spacer(),
-                  SizedBox(
-                    height: 32,
-                    child: TextButton(
-                      onPressed: syncState.isSyncing
-                          ? null
-                          : () => ref.read(syncProvider.notifier).syncAll(),
-                      child: syncState.isSyncing
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Text(
-                              'Sync Now',
-                              style: TextStyle(fontSize: 13),
+      body: SafeArea(
+        top: false,
+        child: sessionsAsync.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (error, _) => _LoadError(error: error.toString()),
+          data: (sessions) => CustomScrollView(
+            slivers: [
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 10),
+                sliver: SliverToBoxAdapter(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const AppSectionHeader(
+                        title: 'Screening, made calmer.',
+                        subtitle:
+                            'Capture a short, guided voice screening with the family.',
+                      ),
+                      const SizedBox(height: 16),
+                      AppSurface(
+                        color: scheme.secondaryContainer.withValues(alpha: .5),
+                        borderColor: scheme.secondary.withValues(alpha: .45),
+                        padding: const EdgeInsets.all(14),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            AppIconBadge(
+                              icon: Icons.info_outline_rounded,
+                              color: scheme.secondary,
+                              size: 38,
                             ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-          // Sessions list
-          Expanded(
-            child: sessionsAsync.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Center(child: Text('Error: $e')),
-              data: (sessions) {
-                if (sessions.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.graphic_eq,
-                          size: 64,
-                          color: theme.colorScheme.primary.withOpacity(0.3),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'No screenings yet',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: theme.colorScheme.onSurface.withOpacity(0.5),
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Tap + to start a new screening',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: theme.colorScheme.onSurface.withOpacity(0.4),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }
-
-                return ListView.separated(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: sessions.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 8),
-                  itemBuilder: (context, i) {
-                    final s = sessions[i];
-                    return Material(
-                      color: theme.colorScheme.surface,
-                      borderRadius: BorderRadius.circular(10),
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(10),
-                        onTap: () => context.push('/session-detail', extra: s),
-                        child: Container(
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(
-                              color: theme.colorScheme.onSurface.withOpacity(
-                                0.08,
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Important',
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.titleSmall,
+                                  ),
+                                  const SizedBox(height: 3),
+                                  Text(
+                                    'This is developmental monitoring, not a diagnosis.',
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.bodySmall,
+                                  ),
+                                ],
                               ),
                             ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      if (syncState.pendingCount > 0)
+                        AppSurface(
+                          color: scheme.tertiaryContainer.withValues(
+                            alpha: .45,
                           ),
+                          borderColor: scheme.tertiaryContainer,
+                          padding: const EdgeInsets.all(14),
                           child: Row(
                             children: [
-                              // Risk dot
-                              Container(
-                                width: 10,
-                                height: 10,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: _riskColor(s.riskLevel),
-                                ),
+                              AppIconBadge(
+                                icon: syncState.isSyncing
+                                    ? Icons.cloud_sync_rounded
+                                    : Icons.cloud_upload_outlined,
+                                color: scheme.tertiary,
+                                size: 38,
                               ),
                               const SizedBox(width: 12),
                               Expanded(
@@ -166,94 +133,245 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      s.childName ??
-                                          'Child (${s.childAgeMonths}m)',
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w500,
-                                      ),
+                                      '${syncState.pendingCount} screening${syncState.pendingCount == 1 ? '' : 's'} ready to sync',
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.titleSmall,
                                     ),
-                                    const SizedBox(height: 2),
                                     Text(
-                                      '${s.anganwadiId} · ${_formatDate(s.sessionDate)}',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: theme.colorScheme.onSurface
-                                            .withOpacity(0.5),
-                                      ),
+                                      'Only numeric screening data is shared.',
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.bodySmall,
                                     ),
                                   ],
                                 ),
                               ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: _riskColor(
-                                    s.riskLevel,
-                                  ).withOpacity(0.12),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Text(
-                                  s.riskLevel.name.toUpperCase(),
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                    color: _riskColor(s.riskLevel),
-                                  ),
+                              TextButton(
+                                onPressed: syncState.isSyncing
+                                    ? null
+                                    : () => ref
+                                          .read(syncProvider.notifier)
+                                          .syncAll(),
+                                child: syncState.isSyncing
+                                    ? const SizedBox(
+                                        width: 18,
+                                        height: 18,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                        ),
+                                      )
+                                    : const Text('Sync'),
+                              ),
+                            ],
+                          ),
+                        )
+                      else
+                        AppSurface(
+                          color: scheme.primaryContainer.withValues(alpha: .42),
+                          borderColor: scheme.primaryContainer,
+                          padding: const EdgeInsets.all(14),
+                          child: Row(
+                            children: [
+                              AppIconBadge(
+                                icon: Icons.verified_user_outlined,
+                                color: scheme.primary,
+                                size: 38,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Ready for the next family',
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.titleSmall,
+                                    ),
+                                    Text(
+                                      'Audio stays on this phone; results can be synced later.',
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.bodySmall,
+                                    ),
+                                  ],
                                 ),
                               ),
-                              const SizedBox(width: 4),
-                              const Icon(Icons.chevron_right),
-                              if (!s.syncedToCloud) ...[
-                                const SizedBox(width: 4),
-                                Icon(
-                                  Icons.cloud_off,
-                                  size: 14,
-                                  color: theme.colorScheme.onSurface
-                                      .withOpacity(0.3),
-                                ),
-                              ],
                             ],
                           ),
                         ),
+                      const SizedBox(height: 28),
+                      AppSectionHeader(
+                        title: sessions.isEmpty
+                            ? 'Your first screening'
+                            : 'Recent screenings',
+                        subtitle: sessions.isEmpty
+                            ? 'Start when the parent and child are comfortable.'
+                            : 'Tap a result to see its details.',
                       ),
-                    );
-                  },
-                );
-              },
-            ),
+                      const SizedBox(height: 14),
+                    ],
+                  ),
+                ),
+              ),
+              if (sessions.isEmpty)
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 120),
+                    child: Center(
+                      child: AppSurface(
+                        color: scheme.surface,
+                        padding: const EdgeInsets.all(28),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            AppIconBadge(
+                              icon: Icons.waving_hand_rounded,
+                              color: scheme.secondary,
+                              size: 64,
+                            ),
+                            const SizedBox(height: 18),
+                            Text(
+                              'Nothing recorded yet',
+                              style: Theme.of(context).textTheme.titleLarge,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'A guided screening takes you from child details to a clear, easy-to-read result.',
+                              textAlign: TextAlign.center,
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                )
+              else
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 120),
+                  sliver: SliverList.separated(
+                    itemCount: sessions.length,
+                    separatorBuilder: (_, _) => const SizedBox(height: 10),
+                    itemBuilder: (context, index) {
+                      final session = sessions[index];
+                      final riskColor = _riskColor(session.riskLevel);
+                      return AppSurface(
+                        onTap: () =>
+                            context.push('/session-detail', extra: session),
+                        padding: const EdgeInsets.all(15),
+                        child: Row(
+                          children: [
+                            AppIconBadge(
+                              icon: Icons.child_care_outlined,
+                              color: riskColor,
+                              size: 44,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    session.childName ??
+                                        'Child • ${session.childAgeMonths} months',
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.titleSmall,
+                                  ),
+                                  const SizedBox(height: 3),
+                                  Text(
+                                    '${session.anganwadiId} • ${_formatDate(session.sessionDate)}',
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.bodySmall,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                AppPill(
+                                  label: session.riskLevel.name.toUpperCase(),
+                                  color: riskColor,
+                                ),
+                                const SizedBox(height: 6),
+                                Icon(
+                                  session.syncedToCloud
+                                      ? Icons.cloud_done_outlined
+                                      : Icons.cloud_queue_outlined,
+                                  size: 16,
+                                  color: scheme.outline,
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+            ],
           ),
-        ],
+        ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
           ref.read(sessionProvider.notifier).reset();
           context.push('/child-profile');
         },
-        icon: const Icon(Icons.add),
-        label: const Text('New Screening'),
+        icon: const Icon(Icons.add_rounded),
+        label: const Text('Start screening'),
       ),
     );
   }
 
-  Color _riskColor(RiskLevel level) {
-    switch (level) {
-      case RiskLevel.red:
-        return const Color(0xFFC62828);
-      case RiskLevel.yellow:
-        return const Color(0xFFF9A825);
-      case RiskLevel.green:
-        return const Color(0xFF2E7D32);
-    }
-  }
+  Color _riskColor(RiskLevel level) => switch (level) {
+    RiskLevel.red => const Color(0xFFC43D42),
+    RiskLevel.yellow => const Color(0xFFC78B19),
+    RiskLevel.green => const Color(0xFF3B8B6A),
+  };
 
   String _formatDate(DateTime date) {
-    final now = DateTime.now();
-    final diff = now.difference(date);
-    if (diff.inDays == 0) return 'Today';
-    if (diff.inDays == 1) return 'Yesterday';
+    final difference = DateTime.now().difference(date);
+    if (difference.inDays == 0) return 'Today';
+    if (difference.inDays == 1) return 'Yesterday';
     return '${date.day}/${date.month}/${date.year}';
+  }
+}
+
+class _LoadError extends StatelessWidget {
+  const _LoadError({required this.error});
+  final String error;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: AppSurface(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const AppIconBadge(icon: Icons.cloud_off_outlined),
+              const SizedBox(height: 14),
+              Text(
+                'Could not load screenings',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                error,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

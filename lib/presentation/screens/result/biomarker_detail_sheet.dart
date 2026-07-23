@@ -11,9 +11,7 @@ void showBiomarkerDetail(
   required bool flagged,
   required List<double> waveform,
   required List<Map<String, dynamic>> trace,
-  bool pfvInsufficientData = false,
   double? pfvAgeZScore,
-  int pfvFramesUsed = 0,
 }) {
   showModalBottomSheet(
     context: context,
@@ -25,9 +23,7 @@ void showBiomarkerDetail(
       flagged: flagged,
       waveform: waveform,
       trace: trace,
-      pfvInsufficientData: pfvInsufficientData,
       pfvAgeZScore: pfvAgeZScore,
-      pfvFramesUsed: pfvFramesUsed,
     ),
   );
 }
@@ -40,9 +36,7 @@ class _BiomarkerDetailSheet extends StatelessWidget {
     required this.flagged,
     required this.waveform,
     required this.trace,
-    required this.pfvInsufficientData,
     required this.pfvAgeZScore,
-    required this.pfvFramesUsed,
   });
   final BiomarkerKind kind;
   final int ageMonths;
@@ -50,9 +44,7 @@ class _BiomarkerDetailSheet extends StatelessWidget {
   final bool flagged;
   final List<double> waveform;
   final List<Map<String, dynamic>> trace;
-  final bool pfvInsufficientData;
   final double? pfvAgeZScore;
-  final int pfvFramesUsed;
 
   String get _name => switch (kind) {
     BiomarkerKind.vttl => 'Vocal turn-taking latency',
@@ -64,7 +56,6 @@ class _BiomarkerDetailSheet extends StatelessWidget {
     BiomarkerKind.cvr => 'CVR',
     BiomarkerKind.pfv => 'PFV',
   };
-  bool get _insufficient => kind == BiomarkerKind.pfv && pfvInsufficientData;
   String get _threshold => switch (kind) {
     BiomarkerKind.vttl =>
       'Flagged when the median adult-to-child response delay is over ${AppConstants.vttlThresholdMs.toStringAsFixed(0)} ms.',
@@ -101,18 +92,14 @@ class _BiomarkerDetailSheet extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               Text(
-                _insufficient
-                    ? 'Not assessed for this child'
-                    : (flagged
-                          ? 'Flagged for follow-up'
-                          : 'Within this screening threshold'),
+                flagged
+                    ? 'Flagged for follow-up'
+                    : 'Within this screening threshold',
                 style: TextStyle(color: color, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
               Text(
-                _insufficient
-                    ? 'At least ${AppConstants.pfvMinimumValidFrames} valid child-voice frames are required. This recording had $pfvFramesUsed, so PFV does not affect the screening result.'
-                    : 'Measured value: $_value\nAge z-score: ${pfvAgeZScore?.toStringAsFixed(2) ?? 'not available'}\n$_threshold',
+                'Measured value: $_value\nAge z-score: ${pfvAgeZScore?.toStringAsFixed(2) ?? 'not available'}\n$_threshold',
               ),
               const SizedBox(height: 24),
               const Text(
@@ -133,9 +120,7 @@ class _BiomarkerDetailSheet extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               if (decisions.isEmpty)
-                const Text(
-                  'No complete analysis window was available; this result should be repeated.',
-                )
+                const Text('No individual analysis windows were saved.')
               else
                 ...decisions.map((item) {
                   final start = ((item['start_ms'] as num).toDouble() / 1000)

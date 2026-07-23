@@ -78,11 +78,6 @@ class SessionDetailScreen extends StatelessWidget {
                   value: _pfvValue(session),
                   flagged: session.pfvFlagged,
                 ),
-                const Divider(),
-                _LabelValue(
-                  label: 'Recording status',
-                  value: session.analysisStatus,
-                ),
                 _LabelValue(
                   label: 'Audio source',
                   value: session.audioSourceUsed,
@@ -92,11 +87,6 @@ class SessionDetailScreen extends StatelessWidget {
                   value:
                       '${session.childVoicedSeconds.toStringAsFixed(1)} seconds',
                 ),
-                if (session.qualityReasons.isNotEmpty)
-                  _LabelValue(
-                    label: 'Quality notes',
-                    value: session.qualityReasons.join('\n'),
-                  ),
               ],
             ),
           ),
@@ -318,9 +308,6 @@ String _answerLabel(String answer) => switch (answer) {
 String _pfvValue(SessionModel session) {
   if (session.pfvUnit != 'semitones') {
     return '${session.pfvStd.toStringAsFixed(2)} Hz SD (legacy session)';
-  }
-  if (session.pfvInsufficientData) {
-    return 'Insufficient data (${session.pfvFramesUsed} valid frames)';
   }
   final sd = session.pfvRawSemitoneSD ?? session.pfvStd;
   final z = session.pfvAgeZScore;

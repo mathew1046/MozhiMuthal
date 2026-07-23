@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../widgets/app_ui.dart';
+
 class ProtocolInfo {
   final String title;
   final String instruction;
@@ -15,10 +17,6 @@ class ProtocolInfo {
 }
 
 class ProtocolCard extends StatelessWidget {
-  final ProtocolInfo protocol;
-  final int elapsed;
-  final bool isRecording;
-
   const ProtocolCard({
     super.key,
     required this.protocol,
@@ -26,115 +24,86 @@ class ProtocolCard extends StatelessWidget {
     required this.isRecording,
   });
 
+  final ProtocolInfo protocol;
+  final int elapsed;
+  final bool isRecording;
+
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final progress = elapsed / protocol.durationSec;
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(32),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: theme.colorScheme.onSurface.withOpacity(0.08),
-        ),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // Icon
-          Icon(protocol.icon, size: 64, color: theme.colorScheme.primary),
-          const SizedBox(height: 20),
-
-          // Title
-          Text(
-            protocol.title,
-            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 8),
-
-          // Instruction
-          Text(
-            protocol.instruction,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 14,
-              color: theme.colorScheme.onSurface.withOpacity(0.6),
-            ),
-          ),
-          const SizedBox(height: 32),
-
-          // Timer ring
-          SizedBox(
-            width: 100,
-            height: 100,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                CircularProgressIndicator(
-                  value: progress.clamp(0.0, 1.0),
-                  strokeWidth: 6,
-                  backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
-                ),
-                Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      '$elapsed',
-                      style: const TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Text(
-                      '/ ${protocol.durationSec}s',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: theme.colorScheme.onSurface.withOpacity(0.4),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 20),
-
-          // Recording indicator
-          if (isRecording)
-            Row(
+    final scheme = Theme.of(context).colorScheme;
+    final progress = (elapsed / protocol.durationSec).clamp(0.0, 1.0);
+    return AppSurface(
+      color: scheme.surface,
+      padding: const EdgeInsets.all(28),
+      child: LayoutBuilder(
+        builder: (context, constraints) => SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Container(
-                  width: 8,
-                  height: 8,
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Color(0xFFC62828),
+                AppIconBadge(
+                  icon: protocol.icon,
+                  color: scheme.secondary,
+                  size: 70,
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  protocol.title,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  protocol.instruction,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: 120,
+                  height: 120,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      SizedBox(
+                        width: 120,
+                        height: 120,
+                        child: CircularProgressIndicator(
+                          value: progress,
+                          strokeWidth: 8,
+                          strokeCap: StrokeCap.round,
+                          backgroundColor: scheme.primaryContainer,
+                        ),
+                      ),
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            '$elapsed',
+                            style: Theme.of(context).textTheme.displaySmall,
+                          ),
+                          Text(
+                            'of ${protocol.durationSec} sec',
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(width: 6),
-                Text(
-                  'Recording',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: theme.colorScheme.onSurface.withOpacity(0.5),
-                  ),
+                const SizedBox(height: 20),
+                AppPill(
+                  label: isRecording ? 'RECORDING' : 'READY TO CONTINUE',
+                  color: isRecording ? const Color(0xFFC43D42) : scheme.primary,
+                  icon: isRecording
+                      ? Icons.fiber_manual_record_rounded
+                      : Icons.check_circle_outline_rounded,
                 ),
               ],
-            )
-          else
-            Text(
-              'Complete',
-              style: TextStyle(
-                fontSize: 13,
-                color: theme.colorScheme.primary,
-                fontWeight: FontWeight.w500,
-              ),
             ),
-        ],
+          ),
+        ),
       ),
     );
   }
