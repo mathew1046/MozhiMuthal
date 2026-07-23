@@ -118,13 +118,13 @@ class _QuestionnaireScreenState extends ConsumerState<QuestionnaireScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            if (question.isMchatQuestion) ...[
-                              const AppPill(
-                                label: 'M-CHAT-R/F',
-                                color: Colors.teal,
-                              ),
-                              const SizedBox(height: 14),
-                            ],
+                            AppPill(
+                              label: MyChildEngine.questionGroupFor(
+                                question,
+                              ).toUpperCase(),
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                            const SizedBox(height: 14),
                             Text(
                               question.prompt,
                               style: Theme.of(context).textTheme.titleLarge,

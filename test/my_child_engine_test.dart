@@ -51,32 +51,24 @@ void main() {
     expect(result.toJson()['questions'], isNotEmpty);
   });
 
-  test(
-    'M-CHAT-R includes all Malayalam items and reverse-scores items 2, 5, and 12',
-    () {
-      final questions = MyChildEngine.forAge(24);
-      final mchat = questions.where((q) => q.isMchatQuestion).toList();
-      expect(mchat, hasLength(20));
-      expect(mchat.every((q) => q.malayalam != null), isTrue);
+  test('compact parent check has at most 20 representative prompts', () {
+    for (var age = 12; age <= 36; age++) {
+      final questions = MyChildEngine.forAge(age);
+      expect(questions, isNotEmpty);
+      expect(questions.length, lessThanOrEqualTo(20));
+      expect(questions.where((q) => q.isMchatQuestion), isEmpty);
 
-      final answers = {
-        for (final q in questions)
-          q.id: q.isMchatQuestion
-              ? (q.mchatConcernWhenYes
-                    ? MyChildAnswer.notYet
-                    : MyChildAnswer.achieved)
-              : MyChildAnswer.achieved,
-        'mchat_01': MyChildAnswer.notYet,
-        'mchat_03': MyChildAnswer.notYet,
-        'mchat_04': MyChildAnswer.notYet,
-      };
-      final result = MyChildEngine.evaluateDetailed(
-        ageMonths: 24,
-        answers: answers,
-      );
-
-      expect(result.domains['MCHAT']?.warningCount, 3);
-      expect(result.domains['MCHAT']?.status, 'low_concern');
-    },
-  );
+      final groupCounts = <String, int>{};
+      for (final question in questions) {
+        final group = MyChildEngine.questionGroupFor(question);
+        groupCounts[group] = (groupCounts[group] ?? 0) + 1;
+      }
+      for (final entry in groupCounts.entries) {
+        expect(
+          entry.value,
+          lessThanOrEqualTo(entry.key == 'Safety and sensory' ? 5 : 3),
+        );
+      }
+    }
+  });
 }

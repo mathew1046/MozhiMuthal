@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mozhimuthal/data/models/child_profile.dart';
+import 'package:mozhimuthal/domain/my_child_engine.dart';
 import 'package:mozhimuthal/main.dart';
 import 'package:mozhimuthal/presentation/providers/session_provider.dart';
 import 'package:mozhimuthal/presentation/screens/questionnaire/questionnaire_screen.dart';
@@ -40,7 +41,9 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Question 1 of 52'), findsOneWidget);
+      final total = MyChildEngine.forAge(24).length;
+      expect(total, lessThanOrEqualTo(20));
+      expect(find.text('Question 1 of $total'), findsOneWidget);
       expect(find.text('Next'), findsOneWidget);
       expect(tester.takeException(), isNull);
 
@@ -49,7 +52,7 @@ void main() {
       await tester.tap(find.text('Next'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Question 2 of 52'), findsOneWidget);
+      expect(find.text('Question 2 of $total'), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
   );

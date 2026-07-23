@@ -190,7 +190,7 @@ class MyChildEvaluation {
   });
   Map<String, dynamic> toJson() => {
     'engine_version': MyChildEngine.engineVersion,
-    'ruleset': 'hypothesis-v2-cdc2022-aligned+mchat-r',
+    'ruleset': 'hypothesis-v2-cdc2022-aligned+compact-parent-check',
     'state': state.name,
     'tier': tier,
     'global_level': globalLevel,
@@ -207,6 +207,15 @@ class MyChildEvaluation {
 
 class MyChildEngine {
   static const engineVersion = AppConstants.myChildEngineVersion;
+  static const compactQuestionLimit = 20;
+  static const _compactGroupLimit = 3;
+  static const _compactGroupOrder = <String>[
+    'Social connection',
+    'Communication',
+    'Learning and play',
+    'Movement and hand skills',
+    'Everyday skills',
+  ];
   static const questions = <MonitoringQuestion>[
     MonitoringQuestion(
       id: "rf_01",
@@ -2277,16 +2286,53 @@ class MyChildEngine {
     'high_concern': 5,
   };
 
-  static List<MonitoringQuestion> forAge(int months) =>
-      months < 12 || months > 36
-      ? const []
-      : questions
-            .where(
-              (q) =>
-                  q.isUniversalRedFlag ||
-                  (months >= q.minAge && months <= q.maxAge),
-            )
-            .toList();
+  /// Returns a compact parent check with no more than 20 prompts.
+  ///
+  /// The official M-CHAT-R/F is a 20-item licensed instrument and must not be
+  /// shortened or scored as a modified version. It is therefore excluded from
+  /// this compact developmental check.
+  static List<MonitoringQuestion> forAge(int months) {
+    if (months < 12 || months > 36) return const [];
+
+    final due = questions
+        .where(
+          (q) => months >= q.minAge && months <= q.maxAge && !q.isMchatQuestion,
+        )
+        .toList();
+    final safetyChecks = due.where(_isSafetyCheck).toList();
+    final compact = <MonitoringQuestion>[...safetyChecks];
+
+    for (final group in _compactGroupOrder) {
+      final representatives =
+          due
+              .where((q) => !_isSafetyCheck(q) && questionGroupFor(q) == group)
+              .toList()
+            ..sort(
+              (a, b) => (a.normativeAgeMonths - months).abs().compareTo(
+                (b.normativeAgeMonths - months).abs(),
+              ),
+            );
+      compact.addAll(representatives.take(_compactGroupLimit));
+    }
+
+    return compact.take(compactQuestionLimit).toList();
+  }
+
+  static bool _isSafetyCheck(MonitoringQuestion question) =>
+      question.id.startsWith('rf_');
+
+  static String questionGroupFor(MonitoringQuestion question) {
+    if (_isSafetyCheck(question)) return 'Safety and sensory';
+    if (question.tags.contains('SE')) return 'Social connection';
+    if (question.tags.contains('EL') || question.tags.contains('RL')) {
+      return 'Communication';
+    }
+    if (question.tags.contains('CP')) return 'Learning and play';
+    if (question.tags.contains('GM') || question.tags.contains('FM')) {
+      return 'Movement and hand skills';
+    }
+    return 'Everyday skills';
+  }
 
   static MyChildState evaluate(
     Map<String, bool> answers, {
