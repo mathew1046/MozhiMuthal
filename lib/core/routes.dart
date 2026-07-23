@@ -40,9 +40,7 @@ final goRouter = GoRouter(
     ),
     GoRoute(
       path: '/processing',
-      builder: (context, state) => ProcessingScreen(
-        skipAcoustic: state.uri.queryParameters['skipAcoustic'] == 'true',
-      ),
+      builder: (context, state) => const ProcessingScreen(),
     ),
     GoRoute(path: '/result', builder: (context, state) => const ResultScreen()),
     GoRoute(

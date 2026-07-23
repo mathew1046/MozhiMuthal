@@ -2,21 +2,24 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/constants.dart';
+import '../../../domain/scoring_engine.dart';
 import '../../../services/audio_pipeline_service.dart';
+import '../../providers/session_provider.dart';
 import '../../widgets/app_ui.dart';
 import 'protocol_card.dart';
 
-class ElicitationScreen extends StatefulWidget {
+class ElicitationScreen extends ConsumerStatefulWidget {
   const ElicitationScreen({super.key});
 
   @override
-  State<ElicitationScreen> createState() => _ElicitationScreenState();
+  ConsumerState<ElicitationScreen> createState() => _ElicitationScreenState();
 }
 
-class _ElicitationScreenState extends State<ElicitationScreen>
+class _ElicitationScreenState extends ConsumerState<ElicitationScreen>
     with WidgetsBindingObserver {
   int _currentProtocol = 0;
   int _elapsed = 0;
@@ -169,9 +172,44 @@ class _ElicitationScreenState extends State<ElicitationScreen>
 
   Future<void> _skipAcousticTest() async {
     _stopProtocolTimer();
-    await AudioPipelineService.stopSession();
-    await AudioPipelineService.deleteTemporaryRecording();
-    if (mounted) context.go('/processing?skipAcoustic=true');
+    final result = ScoringEngine.questionnaireOnly(
+      ref.read(sessionProvider).questionnaireState,
+    );
+    if (result.incomplete) {
+      setState(() {
+        _recording = false;
+        _error =
+            'Complete the parent questionnaire before skipping the voice test.';
+      });
+      return;
+    }
+
+    // Never wait for native microphone cleanup before moving on. A recorder
+    // callback can be winding down after a stop, and waiting here previously
+    // left the temporary skip flow appearing to analyse audio.
+    unawaited(_discardTemporaryRecording());
+    ref
+        .read(sessionProvider.notifier)
+        .setResult(
+          result: result,
+          vttlMs: 0,
+          pfvStd: 0,
+          cvrRatio: 0,
+          audioSource: 'SKIPPED_BY_WORKER',
+          analysisStatus: 'SKIPPED',
+          qualityReasons: const ['Acoustic voice test skipped by worker.'],
+        );
+    if (mounted) context.go('/result');
+  }
+
+  Future<void> _discardTemporaryRecording() async {
+    try {
+      await AudioPipelineService.stopSession();
+      await AudioPipelineService.deleteTemporaryRecording();
+    } on PlatformException {
+      // The result is already explicitly marked as questionnaire-only. A
+      // cleanup failure must not strand the worker in an analysis screen.
+    }
   }
 
   Future<void> _confirmSkipAcousticTest() async {

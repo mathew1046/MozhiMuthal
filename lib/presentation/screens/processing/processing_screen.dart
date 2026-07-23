@@ -8,9 +8,7 @@ import '../../providers/session_provider.dart';
 import '../../widgets/app_ui.dart';
 
 class ProcessingScreen extends ConsumerStatefulWidget {
-  const ProcessingScreen({super.key, this.skipAcoustic = false});
-
-  final bool skipAcoustic;
+  const ProcessingScreen({super.key});
 
   @override
   ConsumerState<ProcessingScreen> createState() => _ProcessingScreenState();
@@ -42,32 +40,6 @@ class _ProcessingScreenState extends ConsumerState<ProcessingScreen>
 
   Future<void> _runPipeline() async {
     final session = ref.read(sessionProvider);
-    if (widget.skipAcoustic) {
-      final result = ScoringEngine.questionnaireOnly(
-        session.questionnaireState,
-      );
-      if (result.incomplete) {
-        _showRetry(
-          message:
-              'Complete the parent questionnaire before using the temporary voice-test skip.',
-          qualityReasons: result.qualityReasons,
-        );
-        return;
-      }
-      ref
-          .read(sessionProvider.notifier)
-          .setResult(
-            result: result,
-            vttlMs: 0,
-            pfvStd: 0,
-            cvrRatio: 0,
-            audioSource: 'SKIPPED_BY_WORKER',
-            analysisStatus: 'SKIPPED',
-            qualityReasons: const ['Acoustic voice test skipped by worker.'],
-          );
-      if (mounted) context.go('/result');
-      return;
-    }
     final ageMonths = session.childProfile?.childAgeMonths ?? 24;
     for (var index = 0; index < _phases.length; index++) {
       await Future.delayed(const Duration(milliseconds: 800));
